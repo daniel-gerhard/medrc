@@ -1,5 +1,5 @@
 import(nlme, stats, drc)
-export(medrm, glsdrm, mmaED, LL4.loged, LN4.loged, W14.loged, W24.loged, EDcond)
+export(medrm, glsdrm, mmaED, LL4.loged, LN4.loged, W14.loged, W24.loged, EDcond, EDmarg)
 
 S3method(df.residual, medrc)
 S3method(plot, medrc)
