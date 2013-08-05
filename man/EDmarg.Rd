@@ -13,7 +13,7 @@
 \usage{
   EDmarg(object, respLev, interval = c("none", "delta", "fls", "tfls"), 
          level = ifelse(!(interval == "none"), 0.95, NULL), reference = c("control", "upper"), 
-         type = c("relative", "absolute"), nGQ=5, rfinterval=NULL, lref, uref, bound = TRUE, 
+         type = c("relative", "absolute"), nGQ=5, rfinterval=c(-1000, 1000), lref, uref, bound = TRUE, 
          display = TRUE, logBase = NULL, ...)
 }
 
@@ -28,7 +28,7 @@
   \item{reference}{character string. Is the upper limit or the control level the reference?}
   \item{type}{character string. Whether the specified response levels are absolute or relative (default).}
   \item{nGQ}{integer. Specifies the number nof nodes for Gauss-Hermite quadrature.}
-  \item{rfinterval}{numeric vector. Interval for root finding (uniroot) to search for ED values. If NULL (default), the range of the dose covariate in the data is used.}
+  \item{rfinterval}{numeric vector. Interval for root finding (uniroot) to search for ED values. Default is [-1000, 1000].}
   \item{lref}{numeric value specifying the lower limit to serve reference.}
   \item{uref}{numeric value specifying the upper limit to serve reference (eg. 100\%).}  
   \item{bound}{logical. If TRUE only ED values between 0 and 100\% are allowed. FALSE is useful for hormesis models.}

@@ -1,4 +1,4 @@
-EDmarg <- function (object, respLev, interval = c("none", "delta", "fls", "tfls"), level = ifelse(!(interval == "none"), 0.95, NULL), reference = c("control", "upper"), type = c("relative", "absolute"), nGQ=5, rfinterval=NULL, lref, uref, bound = TRUE, display = TRUE, logBase = NULL, ...){
+EDmarg <- function (object, respLev, interval = c("none", "delta", "fls", "tfls"), level = ifelse(!(interval == "none"), 0.95, NULL), reference = c("control", "upper"), type = c("relative", "absolute"), nGQ=5, rfinterval=c(-1000, 1000), lref, uref, bound = TRUE, display = TRUE, logBase = NULL, ...){
   require(statmod)
   interval <- match.arg(interval)
   reference <- match.arg(reference)
@@ -84,17 +84,12 @@ EDmarg <- function (object, respLev, interval = c("none", "delta", "fls", "tfls"
     parm[is.na(parm)] <- parmChosen
     p <- 100-drc:::EDhelper(parmChosen, respLev, reference = reference, type = type)
     tval <- parm[2] + (parm[3]-parm[2])*(p/100)
-    mint <- function(d) sum(na.omit(w*apply(intgrid, 1, function(x) object$fct$fct(d, rbind(parmChosen + x)))))-tval
-    if (is.null(rfinterval)){
-      rfi <- range(object$data[,as.character(object$form[3])])
-    } else {
-      rfi <- rfinterval
-    }      
+    mint <- function(d) sum(na.omit(w*apply(intgrid, 1, function(x) object$fct$fct(d, rbind(parmChosen + x)))))-tval 
     myenv <- new.env()
     assign("tval", tval, envir = myenv)
     assign("parmChosen", parmChosen, envir = myenv) 
-    assign("rfi", rfi, envir = myenv) 
-    ede <- suppressWarnings(numericDeriv(quote(uniroot(mint, interval=c(0.1, 1000))$root), "parmChosen", myenv))
+    assign("rfinterval", rfinterval, envir = myenv) 
+    ede <- suppressWarnings(numericDeriv(quote(uniroot(mint, interval=rfinterval)$root), "parmChosen", myenv))
     out <- list()
     out[[1]] <- ede
     out[[2]] <- as.vector(attr(ede, "gradient"))
