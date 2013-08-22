@@ -54,6 +54,7 @@ mcd <- glsdrm(density ~ conc, curveid=e ~ Run,
 plot(mcd, logx=TRUE, ndose=100)
 print(mcd)
 
+# a 4-parameter log-Normal model
 mcln <- glsdrm(density ~ conc, curveid=b + c + d + e ~ Run, 
                fct=LN.4(), data=DNase)
 plot(mcln, logx=TRUE, ndose=100)
