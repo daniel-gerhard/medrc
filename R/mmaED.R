@@ -37,7 +37,7 @@ background = 0.05, dmList = NULL){
   ## Calculating ED values
   if (is.null(dmList) || interval[1] == "kang"){
     edEst <- t(sapply(1:length(mllist), function(x) ED(mllist[[x]], respLevMat[x,], display = FALSE)[,1]))  
-    if (ncol(respLevMat) == 1 & ncol(edEst) == 1) edEst <- t(edEst)
+    if (nrow(respLevMat) != nrow(edEst)) edEst <- t(edEst)
   } else {
     edESSE <- lapply(1:ncol(respLevMat), function(i) sapply(1:length(dmList), function(x){deltaMethod(mllist[[x]]$fit, dmList[[x]](respLevMat[x,i]/100), vcov(mllist[[x]]$fit))}))
     edEst <- matrix(sapply(edESSE, function(x) as.numeric(x[1, , drop = FALSE])), nrow=length(dmList), ncol=length(respLev))
