@@ -1,5 +1,5 @@
 medrm <-
-function(form, curveid=NULL, data, fct, random, correlation=NULL, weights=NULL, control=NULL, start=NULL){
+function(form, curveid=NULL, data, fct, random, correlation=NULL, weights=NULL, control=NULL, start=NULL, REML=FALSE){
   require(nlme)
   require(drc)
   callDetail <- match.call()
@@ -37,7 +37,8 @@ function(form, curveid=NULL, data, fct, random, correlation=NULL, weights=NULL, 
   }     
 
   # nlme call
-  nlmecall <- paste("nlme(", mform, ", fixed=", mfixed, ", data=data, random=", deparse(callDetail$random), ", start=ini, correlation=correlation, weights=weights, control=control)", sep="")
+  if (REML == TRUE) remlmethod <- "'REML'" else remlmethod <- "'ML'"
+  nlmecall <- paste("nlme(", mform, ", fixed=", mfixed, ", data=data, random=", deparse(callDetail$random), ", start=ini, correlation=correlation, weights=weights, control=control, method=", remlmethod, ")", sep="")
   fmmixed <- eval(parse(text=nlmecall))
   
   ### output

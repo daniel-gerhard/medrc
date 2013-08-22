@@ -29,7 +29,7 @@ plot.glsdrc <- function(x, ..., ndose=25, logx=FALSE){
     predictions <- x$fct$fct(dr, rbind(coefficients(x$fit)))
     pdat <- data.frame(predictions, dose=dr)   
     if (logx == TRUE){
-      eval(parse(text=paste("ggplot(mf, aes(x=log(",xname,"), y=",yname,")) + geom_point(alpha=0.3) + geom_line(data=pdat, aes(x=log(dose), y=predictions), colour='blue3')", sep="")))
+      eval(parse(text=paste("ggplot(mf, aes(x=",xname,", y=",yname,")) + coord_trans(x='log') + geom_point(alpha=0.3) + geom_line(data=pdat, aes(x=dose, y=predictions), colour='blue3')", sep="")))
     } else {
       eval(parse(text=paste("ggplot(mf, aes(x=",xname,", y=",yname,")) + geom_point(alpha=0.3) + geom_line(data=pdat, aes(x=dose, y=predictions), colour='blue3')", sep="")))
     }
@@ -39,7 +39,7 @@ plot.glsdrc <- function(x, ..., ndose=25, logx=FALSE){
     predictions <- stack(data.frame(apply(cf, 2, function(para) x$fct$fct(dr, rbind(para)))))$values
     pdat <- data.frame(predictions, dose=rep(dr, times=ncol(cf)), curve=rep(levels(mf[,3]), each=ndose))
     if (logx == TRUE){
-      eval(parse(text=paste("ggplot(mf, aes(x=log(",xname,"), y=",yname,", colour=", fname,")) + geom_point(alpha=0.3) + geom_line(data=pdat, aes(x=log(dose), y=predictions, colour=curve))", sep="")))
+      eval(parse(text=paste("ggplot(mf, aes(x=",xname,", y=",yname,", colour=", fname,")) + coord_trans(x='log') + geom_point(alpha=0.3) + geom_line(data=pdat, aes(x=dose, y=predictions, colour=curve))", sep="")))
     } else {
       eval(parse(text=paste("ggplot(mf, aes(x=",xname,", y=",yname,", colour=", fname,")) + geom_point(alpha=0.3) + geom_line(data=pdat, aes(x=dose, y=predictions, colour=curve))", sep="")))
     }

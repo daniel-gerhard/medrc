@@ -1,6 +1,5 @@
 \name{medrc-package}
 \alias{medrc-package}
-\alias{medrc}
 \docType{package}
 \title{Mixed effect dose-response curves}
 \description{Uses a combination of package drc and nlme to fit nonlinear mixed effects models with ED estimation for the fixed effects.}
@@ -8,8 +7,8 @@
 \tabular{ll}{
 Package: \tab medrc\cr
 Type: \tab Package\cr
-Version: \tab 0.0-3\cr
-Date: \tab 2011-12-22\cr
+Version: \tab 0.0-5\cr
+Date: \tab 2013-08-21\cr
 License: \tab GPL\cr
 LazyLoad: \tab yes\cr
 }
