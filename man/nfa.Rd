@@ -38,7 +38,7 @@ rexp <- drm(response ~ conc, curveid=experiment, fct=LL.4(), data=nfa)
 cmatexp <- matrix(coefficients(rexp), ncol=4)
 mexp <- apply(cmatexp, 2, mean)
 names(mexp) <- letters[2:5]
-rmatexp <- t(apply(cmatexp, 1, function(x) x-mday))
+rmatexp <- t(apply(cmatexp, 1, function(x) x-mexp))
 rownames(rmatexp) <- levels(nfa$experiment)
 colnames(rmatexp) <- letters[2:5]
 
@@ -60,12 +60,10 @@ AIC(nfa.LL4.mixed, nfa.LN4.mixed,
     nfa.W14.mixed, nfa.W24.mixed)
 
 ## BMDL estimation for BMR 1, 5, 10, 20
-mmaED(nfa.LL4.mixed, nfa.LN4.mixed,
+mmaBMD(nfa.LL4.mixed, nfa.LN4.mixed,
       nfa.W14.mixed, nfa.W24.mixed,
       respLev=c(1,5,10,20),
-      interval = "buckland", bmd = "additive",
-      dmList=list(LL4.loged, LN4.loged,
-                  W14.loged, W24.loged))
+      interval = "buckland", bmd = "additive")
 }
 }
 
