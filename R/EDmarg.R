@@ -1,5 +1,4 @@
-EDmarg <- function (object, respLev, interval = c("none", "delta", "fls", "tfls"), level = ifelse(!(interval == "none"), 0.95, NULL), reference = c("control", "upper"), type = c("relative", "absolute"), nGQ=5, rfinterval=c(-1000, 1000), lref, uref, bound = TRUE, display = TRUE, logBase = NULL, ...){
-  require(statmod)
+EDmarg <- function (object, respLev, interval = c("none", "delta", "fls", "tfls"), level = ifelse(!(interval == "none"), 0.95, NULL), reference = c("control", "upper"), type = c("relative", "absolute"), nGQ=5, rfinterval=c(0, 1000), lref, uref, bound = TRUE, display = TRUE, logBase = NULL, ...){
   interval <- match.arg(interval)
   reference <- match.arg(reference)
   type <- match.arg(type)
@@ -17,39 +16,62 @@ EDmarg <- function (object, respLev, interval = c("none", "delta", "fls", "tfls"
   
   # construct integration grid
   pnames <- rownames(parmMat)
-  vc <- VarCorr(object$fit)
-  nv <- nrow(vc)
-  if (nv == 2){
-    nvc <- names(ranef(object$fit))
-  } else{
-    nvc <- rownames(vc)[-nv] 
+  
+  # Pinheiro function
+  varRan <- function(object, level = 1){
+    sigE <- object$sig^2
+    sigE*pdMatrix(object$modelStruct$reStruct)[[level]]
   }
+  
+  # extract variance components
+  ranefs <- ranef(object$fit)
+  nvc <- length(object$fit$modelStruct$reStruct)
+  vclist <- lapply(1:nvc, function(i) varRan(object$fit, level=i))
+  vccor <- lapply(vclist, cov2cor)
+  strspl <- lapply(vclist, function(x) strsplit(names(diag(x)), ".", fixed=TRUE))
+  nrnl <- lapply(strspl, function(x) sapply(x, function(x) x[1]))
+ 
   ###
-  # single vc per parameter
-  rnspl <- strsplit(nvc, ".", fixed=TRUE)
-  nrn <- sapply(rnspl, function(x) x[1])
-  rest <- sapply(rnspl, function(x) x[2])
+  gq <- gauss.quad.prob(n=nGQ, dist="normal", sigma=1)  
   
-  std <- as.numeric(vc[-nv,2])
-  cormat <- diag(length(std))
-  if (ncol(vc) > 2){    
-    cormat[upper.tri(cormat)] <- cormat[lower.tri(cormat)] <- na.omit(as.numeric(vc[-c(1,nv),-c(1,2)]))
-  }
-  gq <- gauss.quad.prob(n=nGQ, dist="normal", sigma=1)
+  igwlist <- lapply(1:nvc, function(v){
+    std <- sqrt(diag(vclist[[v]]))
+    cormat <- vccor[[v]]
+    nrn <- nrnl[[v]]
+    nv <- length(std)
   
-  eg <- eval(parse(text=paste("expand.grid(", paste(rep("gq$nodes", nv-1), collapse=","), ")", sep="")))
-  weg <- eval(parse(text=paste("expand.grid(", paste(rep("gq$weights", nv-1), collapse=","), ")", sep="")))
-  w <- apply(weg, 1, function(x) prod(x))
-  
-  ee <- eigen(cormat)
-  A <- ee$vectors %*% diag(sqrt(ee$values))
-  z <- data.frame(t(std*(A %*% t(as.matrix(eg)))))
-  
-  intgrid <- matrix(0, ncol=length(pnames), nrow=nrow(z))
-  wn <- sapply(1:length(nrn), function(i) which(pnames == nrn[i]))
-  intgrid[,wn] <- as.matrix(z)
-  colnames(intgrid) <- pnames
+    eg <- eval(parse(text=paste("expand.grid(", paste(rep("gq$nodes", nv), collapse=","), ")", sep="")))
+    weg <- eval(parse(text=paste("expand.grid(", paste(rep("gq$weights", nv), collapse=","), ")", sep="")))
+    w <- apply(weg, 1, function(x) prod(x))
+    
+    ee <- eigen(cormat)
+    A <- ee$vectors %*% diag(sqrt(ee$values))
+    z <- data.frame(t(std*(A %*% t(as.matrix(eg)))))
+    
+    intgrid <- matrix(0, ncol=length(pnames), nrow=nrow(z))
+    wn <- sapply(1:length(nrn), function(i) which(pnames == nrn[i]))
+    intgrid[,wn] <- as.matrix(z)
+    colnames(intgrid) <- pnames
+    return(list(intgrid, w))
+  })
   ###   
+  iglist <- lapply(igwlist, function(x) x[[1]])
+  ni <- sapply(iglist, nrow)
+  vllist <- lapply(1:length(ni), function(i) apply(iglist[[i]], 2, function(ir){
+    if (i == 1) return(rep(ir, each=prod(ni[(i+1):length(ni)])))
+    if (i > 1 & i < length(ni)) return(rep(rep(ir, each=prod(ni[(i+1):length(ni)])), times=prod(ni[1:(i-1)])))
+    if (i == length(ni)) return(rep(ir, times=prod(ni[1:(i-1)])))    
+  }))
+  arr <- simplify2array(vllist)
+  intgrid <- apply(arr, c(1,2), sum)
+  
+  wlist <- lapply(igwlist, function(x) x[[2]])
+  wmat <- sapply(1:length(ni), function(i){
+    if (i == 1) return(rep(wlist[[i]], each=prod(ni[(i+1):length(ni)])))
+    if (i > 1 & i < length(ni)) return(rep(rep(wlist[[i]], each=prod(ni[(i+1):length(ni)])), times=prod(ni[1:(i-1)])))
+    if (i == length(ni)) return(rep(wlist[[i]], times=prod(ni[1:(i-1)])))    
+  })
+  w <- apply(wmat, 1, prod)
   
   strParm0 <- sort(colnames(parmMat))
   curveNames <- colnames(parmMat)
@@ -79,17 +101,20 @@ EDmarg <- function (object, respLev, interval = c("none", "delta", "fls", "tfls"
   }
   
   # ED estimation by root finding based on marginal prediction
-  EDlistm <- function(parmChosen, respLev, reference=reference, type=type, intgrid=intgrid, intweights=intweights, rfinterval=rfinterval){
+  EDlistm <- function(parmChosen, respLev, reference=reference, type=type, intgrid=intgrid, intweights=w, rfinterval=rfinterval){
     parm <- object$fct$fixed
     parm[is.na(parm)] <- parmChosen
-    p <- 100-drc:::EDhelper(parmChosen, respLev, reference = reference, type = type)
+    p <- 100-eval(parse(text="drc:::EDhelper(parmChosen, respLev, reference = reference, type = type)"))
     tval <- parm[2] + (parm[3]-parm[2])*(p/100)
-    mint <- function(d) sum(na.omit(w*apply(intgrid, 1, function(x) object$fct$fct(d, rbind(parmChosen + x)))))-tval 
+    mint <- function(d, parmChosen, intgrid, intweights, tval, object) sapply(d, function(dx) sum(na.omit(intweights*apply(intgrid, 1, function(x) object$fct$fct(dx, rbind(parmChosen + x)) )))-tval)
     myenv <- new.env()
+    assign("object", object, envir = myenv)
     assign("tval", tval, envir = myenv)
     assign("parmChosen", parmChosen, envir = myenv) 
     assign("rfinterval", rfinterval, envir = myenv) 
-    ede <- suppressWarnings(numericDeriv(quote(uniroot(mint, interval=rfinterval)$root), "parmChosen", myenv))
+    assign("intgrid", intgrid, envir = myenv) 
+    assign("intweights", intweights, envir = myenv)   
+    ede <- suppressWarnings(numericDeriv(quote(uniroot(mint, interval=rfinterval, parmChosen=parmChosen, intgrid=intgrid, intweights=intweights, tval=tval, object=object)$root), "parmChosen", myenv))
     out <- list()
     out[[1]] <- ede
     out[[2]] <- as.vector(attr(ede, "gradient"))
@@ -102,7 +127,7 @@ EDmarg <- function (object, respLev, interval = c("none", "delta", "fls", "tfls"
     parmInd <- indexMat[, i]
     varCov <- vcMat[parmInd, parmInd]
     for (j in 1:lenPV) {
-      EDeval <- EDlistm(parmChosen, respLev[j], reference = reference, type = type, intgrid=intgrid, intweights=intweights, rfinterval=rfinterval)
+      EDeval <- EDlistm(parmChosen, respLev[j], reference = reference, type = type, intgrid=intgrid, intweights=w, rfinterval=rfinterval)
       EDval <- EDeval[[1]]
       dEDval <- EDeval[[2]]
       oriMat[rowIndex, 1] <- EDval
@@ -119,11 +144,11 @@ EDmarg <- function (object, respLev, interval = c("none", "delta", "fls", "tfls"
   }
   colNames <- c("Estimate", "Std. Error")
   if (interval == "delta") {
-    intMat <- drc:::confint.basic(EDmat, level, object$type, df.residual(object), FALSE)
+    intMat <- eval(parse(text="drc:::confint.basic(EDmat, level, object$type, df.residual(object), FALSE)"))
     intLabel <- "Delta method"
   }
   if (interval == "tfls") {
-    intMat <- exp(drc:::confint.basic(matrix(c(log(oriMat[, 1]), oriMat[, 2]/oriMat[, 1]), ncol = 2), level, object$type, df.residual(object), FALSE))
+    intMat <- eval(parse(text="exp(drc:::confint.basic(matrix(c(log(oriMat[, 1]), oriMat[, 2]/oriMat[, 1]), ncol = 2), level, object$type, df.residual(object), FALSE))"))
     intLabel <- "To and from log scale"
   }
   if (interval == "fls") {
@@ -131,7 +156,7 @@ EDmarg <- function (object, respLev, interval = c("none", "delta", "fls", "tfls"
       logBase <- exp(1)
       EDmat[, 1] <- exp(EDmat[, 1])
     }
-    intMat <- logBase^(drc:::confint.basic(oriMat, level, object$type, df.residual(object), FALSE))
+    intMat <- eval(parse(text="logBase^(drc:::confint.basic(oriMat, level, object$type, df.residual(object), FALSE))"))
     intLabel <- "Back-transformed from log scale"
     EDmat <- EDmat[, -2, drop = FALSE]
     colNames <- colNames[-2]
@@ -143,5 +168,5 @@ EDmarg <- function (object, respLev, interval = c("none", "delta", "fls", "tfls"
     colNames <- c(colNames, "Lower", "Upper")
   }
   dimnames(EDmat) <- list(dimNames, colNames)
-  drc:::resPrint(EDmat, "Estimated effective doses", interval, intLabel, display = display)
+  eval(parse(text="drc:::resPrint(EDmat, 'Estimated effective doses', interval, intLabel, display = display)"))
 }

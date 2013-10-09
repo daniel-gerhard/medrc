@@ -13,7 +13,7 @@
 \usage{
   EDmarg(object, respLev, interval = c("none", "delta", "fls", "tfls"), 
          level = ifelse(!(interval == "none"), 0.95, NULL), reference = c("control", "upper"), 
-         type = c("relative", "absolute"), nGQ=5, rfinterval=c(-1000, 1000), lref, uref, bound = TRUE, 
+         type = c("relative", "absolute"), nGQ=5, rfinterval=c(0, 1000), lref, uref, bound = TRUE, 
          display = TRUE, logBase = NULL, ...)
 }
 
