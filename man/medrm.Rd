@@ -111,7 +111,7 @@ predict(mmr, type="marginal", newdata=ndata)
 #############
 #############
 # fit a 4-parameter Weibull model
-# with random asymptotes, steepness and inflection point location
+# with random asymptotes and inflection point location
 
 ## starting values:
 mf <- glsdrm(density ~ conc, curveid=b + c + d + e ~ Run, 
@@ -125,7 +125,7 @@ colnames(rmat) <- letters[2:5]
 
 # mixed model fit
 mmw <- medrm(density ~ conc, fct=W1.4(), data=DNase, 
-            random=b + c + d + e ~ 1 | Run, 
+            random=c + d + e ~ 1 | Run, 
             start=list(fixed=m[c("b","c","d","e")], Run=rmat))
 
 plot(mmw, logx=TRUE, ndose=100, ranef=TRUE)
