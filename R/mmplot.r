@@ -12,7 +12,11 @@ mmplot <- function(x, ..., ndose=25, logx=FALSE){
   if (is.null(x$curveid)){
     pform <- x$form
   } else {
-    fname <- as.character(x$curveid)[3]
+    if (length(as.character(x$curveid)) == 2){
+      fname <- as.character(x$curveid)[2]
+    } else {
+      fname <- as.character(x$curveid)[3]
+    }
     pform <-  paste(yname, '~', xname, '+', fname)
   }
   mf <- model.frame(pform, data=x$data)

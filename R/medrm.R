@@ -1,7 +1,5 @@
 medrm <-
 function(form, curveid=NULL, data, fct, random, correlation=NULL, weights=NULL, control=NULL, start=NULL, REML=FALSE){
-  require(nlme)
-  require(drc)
   callDetail <- match.call()
   # rewrite drc fct into nls selfstart function
   # drcfunction() is defined in global environment...
@@ -10,9 +8,11 @@ function(form, curveid=NULL, data, fct, random, correlation=NULL, weights=NULL, 
   # one-sided curveid formula
   if (!is.null(curveid) & length(curveid) < 3){
     levelnames <- levels(data[, as.character(curveid)[2]])
-    curveid <- NULL
+    cid1s <- curveid
+    curveid <- NULL    
   } else {
     levelnames <- NULL
+    cid1s <- NULL
   }  
   
   # dose-response formula
@@ -40,6 +40,7 @@ function(form, curveid=NULL, data, fct, random, correlation=NULL, weights=NULL, 
   if (REML == TRUE) remlmethod <- "'REML'" else remlmethod <- "'ML'"
   nlmecall <- paste("nlme(", mform, ", fixed=", mfixed, ", data=data, random=", deparse(callDetail$random), ", start=ini, correlation=correlation, weights=weights, control=control, method=", remlmethod, ")", sep="")
   fmmixed <- eval(parse(text=nlmecall))
+  
   
   ### output
   out <- list()
@@ -110,6 +111,7 @@ function(form, curveid=NULL, data, fct, random, correlation=NULL, weights=NULL, 
   nll <- nobs(logLik(fmmixed))
   out$mselect <- c("AIC"=AIC(fmmixed), "AICc"=AIC(fmmixed) + ((2*pll*(pll+1))/(nll-pll-1)), "BIC"=BIC(fmmixed), "logLik"=logLik(fmmixed), "df"=pll)
   out$start <- ini
+  if (!is.null(cid1s)) out$curveid <- cid1s
   class(out) <- c("medrc", "drc")
   return(out)
 }
