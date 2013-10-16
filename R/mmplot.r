@@ -48,15 +48,15 @@ mmplot <- function(x, ..., ndose=25, logx=FALSE){
   
   if (is.null(x$curveid)){
     if (logx == TRUE){
-      eval(parse(text=paste("ggplot(mf, aes(x=",xname,", y=",yname,")) + coord_trans(x='log') + geom_point(alpha=0.3) + geom_line(data=pdat, aes(x=dose, y=predictions, colour=model))", sep="")))
+      eval(parse(text=paste("ggplot(pdat, aes(x=dose, y=predictions, colour=model)) + coord_trans(x='log') + geom_line()", sep="")))
     } else {
-      eval(parse(text=paste("ggplot(mf, aes(x=",xname,", y=",yname,")) + geom_point(alpha=0.3) + geom_line(data=pdat, aes(x=dose, y=predictions, colour=model))", sep="")))
+      eval(parse(text=paste("ggplot(pdat, aes(x=dose, y=predictions, colour=model)) + geom_line()", sep="")))
     }
   } else {
     if (logx == TRUE){
-      eval(parse(text=paste("ggplot(mf, aes(x=",xname,", y=",yname,", shape=", fname,")) + coord_trans(x='log') + geom_point(alpha=0.3) + geom_line(data=pdat, aes(x=dose, y=predictions, linetype=curve, colour=model, shape=NULL))", sep="")))
+      eval(parse(text=paste("ggplot(data=pdat, aes(x=dose, y=predictions, linetype=curve, colour=model)) + coord_trans(x='log') + geom_line()", sep="")))
     } else {
-      eval(parse(text=paste("ggplot(mf, aes(x=",xname,", y=",yname,", shape=", fname,")) + geom_point(alpha=0.3) + geom_line(data=pdat, aes(x=dose, y=predictions, linetype=curve, colour=model, shape=NULL))", sep="")))
+      eval(parse(text=paste("ggplot(data=pdat, aes(x=dose, y=predictions, linetype=curve, colour=model)) + geom_line()", sep="")))
     }
   }  
 }
