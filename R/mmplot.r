@@ -6,32 +6,31 @@ mmplot <- function(x, ..., ndose=25, logx=FALSE){
   Call$ndose <- NULL
   Call$logx <- NULL
   mnames <- as.character(Call[-1L])[ismedrc]
-   
-  datlist <- lapply(lllist, function(x, ndose, logx){
-    fct <- x$fct
-    makehelpfunction(fct)
-    
-    yname <- as.character(x$form)[2]
-    xname <- as.character(x$form)[3]
-    if (is.null(x$curveid)){
-      pform <- x$form
+
+  yname <- as.character(x$form)[2]
+  xname <- as.character(x$form)[3]
+  if (is.null(x$curveid)){
+    pform <- x$form
+  } else {
+    fname <- as.character(x$curveid)[3]
+    pform <-  paste(yname, '~', xname, '+', fname)
+  }
+  mf <- model.frame(pform, data=x$data)
+  
+  if (logx == TRUE){
+    if (min(mf[,2]) == 0){
+      m0 <- mean(unique(mf[,2])[order(unique(mf[,2]))][1:2])
     } else {
-      fname <- as.character(x$curveid)[3]
-      pform <-  paste(yname, '~', xname, '+', fname)
+      m0 <- min(mf[,2]) 
     }
-    mf <- model.frame(pform, data=x$data)
-    
-    if (logx == TRUE){
-      if (min(mf[,2]) == 0){
-        m0 <- mean(unique(mf[,2])[order(unique(mf[,2]))][1:2])
-      } else {
-        m0 <- min(mf[,2]) 
-      }
-      dr <- exp(seq(log(m0), log(max(mf[,2])), length=ndose))
-    } else {
-      dr <- seq(min(mf[,2]), max(mf[,2]), length=ndose)
-    } 
-    
+    dr <- exp(seq(log(m0), log(max(mf[,2])), length=ndose))
+  } else {
+    dr <- seq(min(mf[,2]), max(mf[,2]), length=ndose)
+  } 
+   
+  datlist <- lapply(lllist, function(x, ndose, logx, dr, mf){
+    fct <- x$fct    
+    makehelpfunction(fct) 
     if (is.null(x$curveid)){
       predictions <- x$fct$fct(dr, rbind(fixef(x$fit)))
       pdat <- data.frame(predictions, dose=dr) 
@@ -42,11 +41,10 @@ mmplot <- function(x, ..., ndose=25, logx=FALSE){
       pdat <- data.frame(predictions, dose=rep(dr, times=ncol(cf)), curve=rep(levels(mf[,3]), each=ndose))
     } 
     return(pdat)
-  }, ndose=ndose, logx=logx)  
+  }, ndose=ndose, logx=logx, dr=dr, mf=mf)  
   
-  pdat <- ldply(datlist)
-  pdat$model <- as.factor(rep(mnames, each=ndose))
-  
+  pdat <- ldply(datlist)  
+  pdat$model <- as.factor(rep(mnames, each=nrow(datlist[[1]])))
   
   if (is.null(x$curveid)){
     if (logx == TRUE){
