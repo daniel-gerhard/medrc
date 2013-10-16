@@ -1,0 +1,64 @@
+mmplot <- function(x, ..., ndose=25, logx=FALSE){
+  lllist <- list(x, ...)
+  ismedrc <- sapply(lllist, function(x) inherits(x, "medrc") | inherits(x, "glsdrc"))
+  mllist <- lllist[ismedrc]  
+  Call <- match.call()
+  Call$ndose <- NULL
+  Call$logx <- NULL
+  mnames <- as.character(Call[-1L])[ismedrc]
+   
+  datlist <- lapply(lllist, function(x, ndose, logx){
+    fct <- x$fct
+    makehelpfunction(fct)
+    
+    yname <- as.character(x$form)[2]
+    xname <- as.character(x$form)[3]
+    if (is.null(x$curveid)){
+      pform <- x$form
+    } else {
+      fname <- as.character(x$curveid)[3]
+      pform <-  paste(yname, '~', xname, '+', fname)
+    }
+    mf <- model.frame(pform, data=x$data)
+    
+    if (logx == TRUE){
+      if (min(mf[,2]) == 0){
+        m0 <- mean(unique(mf[,2])[order(unique(mf[,2]))][1:2])
+      } else {
+        m0 <- min(mf[,2]) 
+      }
+      dr <- exp(seq(log(m0), log(max(mf[,2])), length=ndose))
+    } else {
+      dr <- seq(min(mf[,2]), max(mf[,2]), length=ndose)
+    } 
+    
+    if (is.null(x$curveid)){
+      predictions <- x$fct$fct(dr, rbind(fixef(x$fit)))
+      pdat <- data.frame(predictions, dose=dr) 
+    } else {
+      flev <- length(levels(mf[,3])) 
+      cf <- matrix(coefficients(x), ncol=flev, byrow=TRUE)
+      predictions <- stack(data.frame(apply(cf, 2, function(para) x$fct$fct(dr, rbind(para)))))$values
+      pdat <- data.frame(predictions, dose=rep(dr, times=ncol(cf)), curve=rep(levels(mf[,3]), each=ndose))
+    } 
+    return(pdat)
+  }, ndose=ndose, logx=logx)  
+  
+  pdat <- ldply(datlist)
+  pdat$model <- as.factor(rep(mnames, each=ndose))
+  
+  
+  if (is.null(x$curveid)){
+    if (logx == TRUE){
+      eval(parse(text=paste("ggplot(mf, aes(x=",xname,", y=",yname,")) + coord_trans(x='log') + geom_point(alpha=0.3) + geom_line(data=pdat, aes(x=dose, y=predictions, colour=model))", sep="")))
+    } else {
+      eval(parse(text=paste("ggplot(mf, aes(x=",xname,", y=",yname,")) + geom_point(alpha=0.3) + geom_line(data=pdat, aes(x=dose, y=predictions, colour=model))", sep="")))
+    }
+  } else {
+    if (logx == TRUE){
+      eval(parse(text=paste("ggplot(mf, aes(x=",xname,", y=",yname,", shape=", fname,")) + coord_trans(x='log') + geom_point(alpha=0.3) + geom_line(data=pdat, aes(x=dose, y=predictions, linetype=curve, colour=model, shape=NULL))", sep="")))
+    } else {
+      eval(parse(text=paste("ggplot(mf, aes(x=",xname,", y=",yname,", shape=", fname,")) + geom_point(alpha=0.3) + geom_line(data=pdat, aes(x=dose, y=predictions, linetype=curve, colour=model, shape=NULL))", sep="")))
+    }
+  }  
+}
