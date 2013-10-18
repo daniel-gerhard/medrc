@@ -1,5 +1,4 @@
 SImarg <- function(object, percVec, compMatch = NULL, reverse = FALSE, interval = c("none", "delta", "fieller", "fls"), level = ifelse(!(interval == "none"), 0.95, NULL), reference = c("control", "upper"), type = c("relative", "absolute"), nGQ=5, rfinterval=c(-1000, 1000), display = TRUE, logBase = NULL, ...){  
-  require(statmod)
   interval <- match.arg(interval)
   reference <- match.arg(reference)
   type <- match.arg(type)
@@ -21,7 +20,7 @@ SImarg <- function(object, percVec, compMatch = NULL, reverse = FALSE, interval 
   edfct <- function(parmChosen, respLev, reference, type, intgrid, intweights, rfinterval){
     parm <- object$fct$fixed
     parm[is.na(parm)] <- parmChosen
-    p <- 100-drc:::EDhelper(parmChosen, respLev, reference = reference, type = type)
+    p <- 100-eval(parse(text="drc:::EDhelper(parmChosen, respLev, reference = reference, type = type)"))
     tval <- parm[2] + (parm[3]-parm[2])*(p/100)
     mint <- function(d) sum(na.omit(w*apply(intgrid, 1, function(x) object$fct$fct(d, rbind(parmChosen + x)))))-tval 
     myenv <- new.env()
@@ -38,42 +37,65 @@ SImarg <- function(object, percVec, compMatch = NULL, reverse = FALSE, interval 
   indexMat <- object$indexMat
   parmMat <- object$parmMat
   
-  # construct integration grid
   pnames <- rownames(parmMat)
-  vc <- VarCorr(object$fit)
-  nv <- nrow(vc)
-  if (nv == 2){
-    nvc <- names(ranef(object$fit))
-  } else{
-    nvc <- rownames(vc)[-nv] 
+  
+  # Pinheiro function
+  varRan <- function(object, level = 1){
+    sigE <- object$sig^2
+    sigE*pdMatrix(object$modelStruct$reStruct)[[level]]
   }
+  
+  # extract variance components
+  ranefs <- ranef(object$fit)
+  nvc <- length(object$fit$modelStruct$reStruct)
+  vclist <- lapply(1:nvc, function(i) varRan(object$fit, level=i))
+  vccor <- lapply(vclist, cov2cor)
+  strspl <- lapply(vclist, function(x) strsplit(names(diag(x)), ".", fixed=TRUE))
+  nrnl <- lapply(strspl, function(x) sapply(x, function(x) x[1]))
+  
   ###
-  # single vc per parameter
-  rnspl <- strsplit(nvc, ".", fixed=TRUE)
-  nrn <- sapply(rnspl, function(x) x[1])
-  rest <- sapply(rnspl, function(x) x[2])
+  gq <- gauss.quad.prob(n=nGQ, dist="normal", sigma=1)  
   
-  std <- as.numeric(vc[-nv,2])
-  cormat <- diag(length(std))
-  if (ncol(vc) > 2){    
-    cormat[upper.tri(cormat)] <- cormat[lower.tri(cormat)] <- na.omit(as.numeric(vc[-c(1,nv),-c(1,2)]))
-  }
-  gq <- gauss.quad.prob(n=nGQ, dist="normal", sigma=1)
+  igwlist <- lapply(1:nvc, function(v){
+    std <- sqrt(diag(vclist[[v]]))
+    cormat <- vccor[[v]]
+    nrn <- nrnl[[v]]
+    nv <- length(std)
+    
+    eg <- eval(parse(text=paste("expand.grid(", paste(rep("gq$nodes", nv), collapse=","), ")", sep="")))
+    weg <- eval(parse(text=paste("expand.grid(", paste(rep("gq$weights", nv), collapse=","), ")", sep="")))
+    w <- apply(weg, 1, function(x) prod(x))
+    
+    ee <- eigen(cormat)
+    A <- ee$vectors %*% diag(sqrt(ee$values))
+    z <- data.frame(t(std*(A %*% t(as.matrix(eg)))))
+    
+    intgrid <- matrix(0, ncol=length(pnames), nrow=nrow(z))
+    wn <- sapply(1:length(nrn), function(i) which(pnames == nrn[i]))
+    intgrid[,wn] <- as.matrix(z)
+    colnames(intgrid) <- pnames
+    return(list(intgrid, w))
+  })
+  ###   
+  iglist <- lapply(igwlist, function(x) x[[1]])
+  ni <- sapply(iglist, nrow)
+  vllist <- lapply(1:length(ni), function(i) apply(iglist[[i]], 2, function(ir){
+    if (i == 1) return(rep(ir, each=prod(ni[(i+1):length(ni)])))
+    if (i > 1 & i < length(ni)) return(rep(rep(ir, each=prod(ni[(i+1):length(ni)])), times=prod(ni[1:(i-1)])))
+    if (i == length(ni)) return(rep(ir, times=prod(ni[1:(i-1)])))    
+  }))
+  arr <- simplify2array(vllist)
+  intgrid <- apply(arr, c(1,2), sum)
   
-  eg <- eval(parse(text=paste("expand.grid(", paste(rep("gq$nodes", nv-1), collapse=","), ")", sep="")))
-  weg <- eval(parse(text=paste("expand.grid(", paste(rep("gq$weights", nv-1), collapse=","), ")", sep="")))
-  w <- apply(weg, 1, function(x) prod(x))
+  wlist <- lapply(igwlist, function(x) x[[2]])
+  wmat <- sapply(1:length(ni), function(i){
+    if (i == 1) return(rep(wlist[[i]], each=prod(ni[(i+1):length(ni)])))
+    if (i > 1 & i < length(ni)) return(rep(rep(wlist[[i]], each=prod(ni[(i+1):length(ni)])), times=prod(ni[1:(i-1)])))
+    if (i == length(ni)) return(rep(wlist[[i]], times=prod(ni[1:(i-1)])))    
+  })
+  w <- apply(wmat, 1, prod)
   
-  ee <- eigen(cormat)
-  A <- ee$vectors %*% diag(sqrt(ee$values))
-  z <- data.frame(t(std*(A %*% t(as.matrix(eg)))))
-  
-  intgrid <- matrix(0, ncol=length(pnames), nrow=nrow(z))
-  wn <- sapply(1:length(nrn), function(i) which(pnames == nrn[i]))
-  intgrid[,wn] <- as.matrix(z)
-  colnames(intgrid) <- pnames  
-  
-  sifct <- createsifctm(edfct, logBase, identical(interval,"fls"), indexMat, length(coef(object)), intgrid, intweights, rfinterval)
+  sifct <- createsifctm(edfct, logBase, identical(interval,"fls"), indexMat, length(coef(object)), intgrid, w, rfinterval)
   
   options(warn = -1)
   if (any(is.na(as.numeric(curveNames)))){
@@ -95,7 +117,6 @@ SImarg <- function(object, percVec, compMatch = NULL, reverse = FALSE, interval 
   oriMat <- matrix(0, numComp, 2)
   degfree <- df.residual(object)
   rowIndex <- 1
-  require(gtools, quietly = TRUE)
   pairsMat <- combinations(lenEB, 2)
   percMat <- combinations(lenPV, 2)
   if (reverse){
@@ -103,7 +124,7 @@ SImarg <- function(object, percVec, compMatch = NULL, reverse = FALSE, interval 
     percMat <- percMat[, 2:1, drop = FALSE]
   }
   appFct1 <- function(percVal){
-    apply(pairsMat, 1, siInnerm, pVec = percVec[percVal], compMatch = compMatch, object = object, indexMat = indexMat, parmMat = parmMat, varMat = varMat, level = level, reference = reference, type = type, sifct = sifct, interval = interval, degfree = degfree, logBase = logBase, intgrid=intgrid, intweights=intweights, rfinterval=rfinterval)
+    apply(pairsMat, 1, siInnerm, pVec = percVec[percVal], compMatch = compMatch, object = object, indexMat = indexMat, parmMat = parmMat, varMat = varMat, level = level, reference = reference, type = type, sifct = sifct, interval = interval, degfree = degfree, logBase = logBase, intgrid=intgrid, intweights=w, rfinterval=rfinterval)
   }
   SImat <- matrix(apply(percMat, 1, appFct1), nrow = nrow(pairsMat) * nrow(percMat), byrow = TRUE)
   
@@ -127,7 +148,7 @@ SImarg <- function(object, percVec, compMatch = NULL, reverse = FALSE, interval 
   }
   colnames(SImat) <- cNames
   ciLabel <- switch(interval, delta = "Delta method", tfls = "To and from log scale", fls = "From log scale", fieller = "Fieller")
-  drc:::resPrint(SImat, "Estimated ratios of effect doses", interval, ciLabel, display = display)  
+  eval(parse(text="drc:::resPrint(SImat, 'Estimated ratios of effect doses', interval, ciLabel, display = display)"))  
 }
 
 
@@ -244,7 +265,7 @@ siInnerm <- function (indPair, pVec, compMatch, object, indexMat, parmMat, varMa
     vcMat[1, 2] <- SIeval$der1 %*% varMat[parmInd1, parmInd2] %*% SIeval$der2
     vcMat[2, 1] <- vcMat[1, 2]
     muVec <- c(SIeval$valnum, SIeval$valden)
-    siMatRow[2:3] <- fieller(muVec, degfree, vcMat, level = level)
+    siMatRow[2:3] <- eval(parse(text="drc:::fieller(muVec, degfree, vcMat, level = level)"))
     ciLabel <- "Fieller"
   }
   siMatRow
