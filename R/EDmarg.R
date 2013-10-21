@@ -103,11 +103,7 @@ EDmarg <- function (object, respLev, interval = c("none", "delta", "fls", "tfls"
   # ED estimation by root finding based on marginal prediction
   EDlistm <- function(parmChosen, respLev, reference=reference, type=type, intgrid=intgrid, intweights=w, rfinterval=rfinterval){
     parm <- object$fct$fixed
-    if (is.null(parm)){
-      parm <- parmChosen
-      } else {
-        parm[is.na(parm)] <- parmChosen
-      }
+    parm[is.na(parm)] <- parmChosen
     p <- 100-eval(parse(text="drc:::EDhelper(parmChosen, respLev, reference = reference, type = type)"))
     tval <- parm[2] + (parm[3]-parm[2])*(p/100)
     mint <- function(d, parmChosen, intgrid, intweights, tval, object) sapply(d, function(dx) sum(na.omit(intweights*apply(intgrid, 1, function(x) object$fct$fct(dx, rbind(parmChosen + x)) )))-tval)

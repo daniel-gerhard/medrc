@@ -19,11 +19,7 @@ SImarg <- function(object, percVec, compMatch = NULL, reverse = FALSE, interval 
   # ED estimation by root finding based on marginal prediction
   edfct <- function(parmChosen, respLev, reference, type, intgrid, intweights, rfinterval){
     parm <- object$fct$fixed
-    if (is.null(parm)){
-      parm <- parmChosen
-    } else {
-      parm[is.na(parm)] <- parmChosen
-    }
+    parm[is.na(parm)] <- parmChosen
     p <- 100-eval(parse(text="drc:::EDhelper(parmChosen, respLev, reference = reference, type = type)"))
     tval <- parm[2] + (parm[3]-parm[2])*(p/100)
     mint <- function(d) sum(na.omit(w*apply(intgrid, 1, function(x) object$fct$fct(d, rbind(parmChosen + x)))))-tval 
