@@ -7,7 +7,7 @@
 
 \description{
 
-  \code{ED} estimates marginal effective doses (ECp/EDp/ICp) for given reponse levels, conditional on estimated variance components.
+  \code{ED} estimates marginal effective doses (ECp/EDp/ICp) for given reponse levels, conditional on the estimated variance components.
 }
 
 \usage{
@@ -28,7 +28,7 @@
   \item{reference}{character string. Is the upper limit or the control level the reference?}
   \item{type}{character string. Whether the specified response levels are absolute or relative (default).}
   \item{nGQ}{integer. Specifies the number nof nodes for Gauss-Hermite quadrature.}
-  \item{rfinterval}{numeric vector. Interval for root finding (uniroot) to search for ED values. Default is [-1000, 1000].}
+  \item{rfinterval}{numeric vector. Interval for root finding (uniroot) to search for ED values. Default is [0, 1000].}
   \item{lref}{numeric value specifying the lower limit to serve reference.}
   \item{uref}{numeric value specifying the upper limit to serve reference (eg. 100\%).}  
   \item{bound}{logical. If TRUE only ED values between 0 and 100\% are allowed. FALSE is useful for hormesis models.}
