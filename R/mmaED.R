@@ -1,4 +1,6 @@
-mmaED <- function(object, ..., respLev, ic = "AIC", interval = c("none", "buckland", "kang"), level = 0.95){
+mmaED <- function(object, ..., respLev, ic = c("AIC", "BIC"), interval = c("none", "buckland", "kang"), level = 0.95, marginal=FALSE, nGQ=5, rfinterval=c(0, 1000)){
+  interval <- match.arg(interval)
+  ic <- match.arg(ic)
   lllist <- list(object, ...)
   ismedrc <- sapply(lllist, function(x) inherits(x, "medrc") | inherits(x, "glsdrc"))
   mllist <- lllist[ismedrc]  
@@ -7,6 +9,9 @@ mmaED <- function(object, ..., respLev, ic = "AIC", interval = c("none", "buckla
   Call$ic <- NULL
   Call$interval <- NULL
   Call$level <- NULL
+  Call$marginal <- NULL
+  Call$nGQ <- NULL
+  Call$rfinterval <- NULL
   mnames <- as.character(Call[-1L])[ismedrc]
   # number of curves
   if (any(ncol(mllist[[1]]$parmMat) != sapply(mllist, function(x) ncol(x$parmMat)))) stop("Number of curves are not the same for all models!")
@@ -18,7 +23,11 @@ mmaED <- function(object, ..., respLev, ic = "AIC", interval = c("none", "buckla
   names(wi) <- mnames
   
   # calculate ED per model
-  edlist <- lapply(mllist, function(x) ED(x, respLev=respLev, display=FALSE))
+  if (marginal == TRUE){
+    edlist <- lapply(mllist, function(x) EDmarg(x, respLev=respLev, display=FALSE, nGQ=nGQ, rfinterval=rfinterval))
+  } else {
+    edlist <- lapply(mllist, function(x) ED(x, respLev=respLev, display=FALSE))
+  }
   edm <- rbind(sapply(edlist, function(x) x[,1]))
   colnames(edm) <- mnames
   
@@ -38,7 +47,11 @@ mmaED <- function(object, ..., respLev, ic = "AIC", interval = c("none", "buckla
   }
   
   if (interval[1] == "kang"){
-    edclist <- lapply(mllist, function(x) ED(x, respLev=respLev, interval="delta", display=FALSE))
+    if (marginal == TRUE){
+      edclist <- lapply(mllist, function(x) EDmarg(x, respLev=respLev, interval="delta", display=FALSE, nGQ=nGQ, rfinterval=rfinterval))
+    } else {
+      edclist <- lapply(mllist, function(x) ED(x, respLev=respLev, interval="delta", display=FALSE))
+    }
     ll <- rbind(sapply(edclist, function(x) x[,3]))
     ul <- rbind(sapply(edclist, function(x) x[,4]))
     retMat <- as.matrix(cbind(edma, apply(ll, 1, function(x) sum(x*wi)), apply(ul, 1, function(x) sum(x*wi))))
@@ -46,7 +59,6 @@ mmaED <- function(object, ..., respLev, ic = "AIC", interval = c("none", "buckla
   }  
   
   out <- list()
-  out$effectiveRespLev <- respLev
   out$retMat <- retMat
   out$weights <- wi
   out$EDi <- edm

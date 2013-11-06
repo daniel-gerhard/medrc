@@ -1,5 +1,6 @@
-
-mmaBMD <- function(object, ..., respLev, ic = "AIC", interval = c("none", "buckland", "kang"), level = 0.95, bmd = c("additional", "extra"), background = 0.05){
+mmaBMD <- function(object, ..., respLev, ic = c("AIC", "BIC"), interval = c("none", "buckland", "kang"), level = 0.95, bmd = c("additional", "extra"), background = 0.05, marginal=FALSE, nGQ=5, rfinterval=c(0, 1000)){
+  interval <- match.arg(interval)
+  ic <- match.arg(ic)
   lllist <- list(object, ...)
   ismedrc <- sapply(lllist, function(x) inherits(x, "medrc") | inherits(x, "glsdrc"))
   mllist <- lllist[ismedrc]  
@@ -11,6 +12,9 @@ mmaBMD <- function(object, ..., respLev, ic = "AIC", interval = c("none", "buckl
   Call$background <- NULL
   Call$bmd <- NULL
   Call$dmlist <- NULL
+  Call$marginal <- NULL
+  Call$nGQ <- NULL
+  Call$rfinterval <- NULL
   mnames <- as.character(Call[-1L])[ismedrc]
   # number of curves
   if (any(ncol(mllist[[1]]$parmMat) != sapply(mllist, function(x) ncol(x$parmMat)))) stop("Number of curves are not the same for all models!")
@@ -52,9 +56,17 @@ mmaBMD <- function(object, ..., respLev, ic = "AIC", interval = c("none", "buckl
     mobj <- mllist[[i]]
     parmMat <- mobj$parmMat
     if (ncol(parmMat) > 1){
-      lapply(1:length(respLev), function(rl) sapply(1:ncol(parmMat), function(j)  ED(mobj, respLev=respLevMat[[rl]][j,i], clevel=colnames(parmMat)[j], display=FALSE)))
+      if (marginal == TRUE){
+        lapply(1:length(respLev), function(rl) sapply(1:ncol(parmMat), function(j)  EDmarg(mobj, respLev=respLevMat[[rl]][j,i], clevel=colnames(parmMat)[j], display=FALSE, nGQ=nGQ, rfinterval=rfinterval)))
+      } else {
+        lapply(1:length(respLev), function(rl) sapply(1:ncol(parmMat), function(j)  ED(mobj, respLev=respLevMat[[rl]][j,i], clevel=colnames(parmMat)[j], display=FALSE)))
+      }
     } else {
-      lapply(1:length(respLev), function(rl) t(ED(mobj, respLev=respLevMat[[rl]][i], display=FALSE)))    
+      if (marginal == TRUE){
+        lapply(1:length(respLev), function(rl) t(EDmarg(mobj, respLev=respLevMat[[rl]][i], display=FALSE, nGQ=nGQ, rfinterval=rfinterval)))  
+      } else {
+        lapply(1:length(respLev), function(rl) t(ED(mobj, respLev=respLevMat[[rl]][i], display=FALSE)))  
+      }
     }    
   })
   edm <- sapply(1:length(edl), function(i) sapply(edl[[i]], function(x) x[1,]))
@@ -87,9 +99,17 @@ mmaBMD <- function(object, ..., respLev, ic = "AIC", interval = c("none", "buckl
       mobj <- mllist[[i]]
       parmMat <- mobj$parmMat
       if (ncol(parmMat) > 1){
-        lapply(1:length(respLev), function(rl) sapply(1:ncol(parmMat), function(j)  ED(mobj, respLev=respLevMat[[rl]][j,i], clevel=colnames(parmMat)[j], display=FALSE, interval="delta")))
+        if (marginal == TRUE){
+          lapply(1:length(respLev), function(rl) sapply(1:ncol(parmMat), function(j)  EDmarg(mobj, respLev=respLevMat[[rl]][j,i], clevel=colnames(parmMat)[j], display=FALSE, interval="delta", nGQ=nGQ, rfinterval=rfinterval)))
+        } else {
+          lapply(1:length(respLev), function(rl) sapply(1:ncol(parmMat), function(j)  ED(mobj, respLev=respLevMat[[rl]][j,i], clevel=colnames(parmMat)[j], display=FALSE, interval="delta")))
+        }
       } else {
-        lapply(1:length(respLev), function(rl) t(ED(mobj, respLev=respLevMat[[rl]][i], display=FALSE, interval="delta")))    
+        if (marginal == TRUE){
+          lapply(1:length(respLev), function(rl) t(ED(mobj, respLev=respLevMat[[rl]][i], display=FALSE, interval="delta", nGQ=nGQ, rfinterval=rfinterval)))   
+        } else {
+          lapply(1:length(respLev), function(rl) t(ED(mobj, respLev=respLevMat[[rl]][i], display=FALSE, interval="delta")))   
+        }
       }    
     })
     ll <- sapply(1:length(edlci), function(i) sapply(edlci[[i]], function(x) x[3,]))
