@@ -1,0 +1,334 @@
+\documentclass[a4paper]{article}
+
+%\VignetteEngine{knitr::knitr}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{rotating}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage[a4paper, hdivide={2cm,,2cm}, vdivide={2cm,,2cm}]{geometry}
+\usepackage{parskip}
+\usepackage{natbib}
+\usepackage{tabularx}
+\usepackage{fancyvrb}
+\usepackage{multicol}
+\usepackage[hidelinks]{hyperref}
+
+
+\title{An introduction to the medrc package}
+\date{\today}
+\author{Daniel Gerhard}
+
+
+\begin{document}
+
+
+%\VignetteIndexEntry{Using medrc} \\
+%\VignettePackage{mcprofile} \\
+
+
+\maketitle
+
+\tableofcontents
+
+<<medrcpackage, echo=FALSE, message=FALSE, warning=FALSE>>=
+library(medrc)
+@
+
+\section{Motivation}
+
+% nonlinear drc
+The analysis of dose-response experiments using nonlinear models allows inference about the model parameters and the prediction of new response values. A common way to summarize the effect of an increasing dose level on the response is deriving parameters from the dose-response curve, like the effective dose $ED(p)$. Also the comparison of several curves by selectivity indices, like the relative potency, is available. For risk estimation in toxicology the estimation of benchmark dose (BMD) levels is a further important topic that is based on the nonlinear modeling of dose-response curves.
+
+% drc package
+The drc package \citep{Ritz2005} allows the simultaneous fitting of several non-linear regression models, providing a common parameterization for several models and searching automatically for starting values. Several functions are available for model-averaging and inference of derived parameters.
+
+% clustered data
+When analyzing dose-response curves, the observed data is often obtained from experiments with hierarchical designs, where the responses can be assigned to several known clusters. Instead of just assuming a single residual error in the dose-response model, the variability within and between clusters can be modeled. Either additional correlation parameters can be introduced to structure the residual error by generalized nonlinear least squares estimation or a distribution function for the cluster effects can be assumed separately to the distribution of the residuals in a mixed model framework.
+
+% nlme package
+The nlme package \citep{Pinheiro2000} provides functions to estimate parameters and variance components in nonlinear mixed models by (restricted) maximum likelihood. Some functions to parameterize the non-linear curve are already available, but it is also possible to provide your own modeling function.
+
+% automated drc-nlme modeling
+The medrc combines the automated dose-response modeling framework of the package drc with the nonlinear mixed estimation framework of the package nlme. Thereby, additional random effects can be introduced to the dose-response models with the unified parameterization of drc, with the availability of inference for derived parameters also for hierarchical models.
+
+
+
+\section{Broccoli example data}
+
+The effect of drought stress on Brassica oleracea is investigated, selecting drought stress resistant varieties out of a population of different DH genotypes. The screening study was carried out on 48 DH lines developed from F1 plants of a cross between the rapid cycling chinese kale (\textit{Brassica oleracea} var. \textit{alboglabra} (L.H. Bailey) Musil) and broccoli (\textit{Brassica oleracea} var. \textit{italica} Plenck). Two stress treatments (not watered and a watered control) are randomly assigned to 4 plants per genotype (2 per treatment) resulting in 192 plants in total. For the genotypes 5, 17, 31, 48, additional 12 plants (6 per treatment) are included into the completely randomized design, which results in a total of 240 plants. For each plant the length of the youngest leaf at the beginning of the experiment is measured daily for a period of 16 days. For the additional 12 plants of the 4 genotypes the leaf water potential was measured as a secondary endpoint (omitted here); due to these destructive measurements some dropouts occur.
+
+<<broccoli, tidy=FALSE, fig.height=8>>=
+data(broccoli)
+str(broccoli)
+
+ggplot(broccoli, aes(x=Day, y=LeafLength, group=ID, colour=Stress)) +
+  geom_line() +
+  facet_wrap(~ Genotype, ncol=8)
+@
+
+There are two individuals for genotypes 42 and 43 with growth curves, which are not representative for the population of interest, as their leaf growth has stopped in favor of early flowering. These curves are removed from the dataset.
+<<removeobs>>=
+bro <- droplevels(subset(broccoli, ID != "110" & ID != "125"))
+@
+
+
+
+
+\section{Nonlinear mixed effects models}
+
+Following the notation of \citet{Davidian1995}, a nonlinear model with a single hierarchical level can be defined in two stages, parameterizing the model for treating the variability within the $i$th subject, and combining the subject specific models in stage 2.
+
+For $i=1,\dots,m$ individuals, following model can be assumed
+\[ y_{ij} \sim f(x_{ij}, \boldsymbol{\beta}_{i}) + \epsilon_{ij} \]
+where $y_{ij}$ are the response vectors of length $j=1,\dots,n_{i}$ with the corresponding vectors of dose levels $x_{ij}$ for each individual. The dose-response curve is described by the functions $f(x_{ij}, \boldsymbol{\beta}_{i})$ with an individual-specific $(p \times 1)$ vector of parameters $\boldsymbol{\beta}_{i}$. The residual vectors $\epsilon_{ij} \sim N(\boldsymbol{0}, \sigma^{2}\boldsymbol{\Lambda}_{i})$ are assumed to be normal distributed with a correlation structure defined by the elements of $\boldsymbol{\Lambda}_{i}$. 
+
+In the second stage the inter-individual effects are described by modeling the $\boldsymbol{\beta}_{i}$. The individual effects are separated into a fixed and random component
+\[ \boldsymbol{\beta}_{i} = \boldsymbol{A}_{i}\boldsymbol{\beta} + \boldsymbol{B}_{i}\boldsymbol{b}_{i} \]
+where $\boldsymbol{\beta}$ is a stacked vector of fixed effects parameters with one set of model parameters for each curve defined in the design matrix $\boldsymbol{A}_{i}$. The between individual effects and further between cluster effects can be defined by a random effects vector $\boldsymbol{b}_{i}$ and the corresponding design matrix $\boldsymbol{B}_{i}$. 
+% further description of design matrix A_i and B_i
+
+The random effects can be assumed to follow a normal distribution
+\[ \boldsymbol{b}_{i} \sim N(\boldsymbol{0}, \boldsymbol{G}) \]
+where $\boldsymbol{G}$ is the between individual variance-covariance matrix.
+
+
+\subsection{The medrm function}
+
+To fit a hierarchical dose-response model with medrc, the medrm function can be used with following main arguments:
+\begin{description}
+\item[form] A formula with the name of the response on the left and the name of the dose variable on the right hand side
+\item[curveid] A formula with the name of a factor, which divides the dataset into several clusters. For each cluster a different fixed effect curve is assumed. On the left hand side, the names of parameters can be given, separated by a $+$ symbol, which are assumed to be different across the curves. Hence, only a subset of parameters may describe the difference between fixed effect curves. If these parameter names are omitted, or curveid is set to NULL, only a single curve is fitted.
+\item[data] A data.frame object with the dose-response data
+\item[fct] A model function of package drc.
+\item[random] The definition of random effects, similar to the random argument in the function nlme. This can be, for example, a formula with parameter names on the left hand side, like in the curveid argument, and 1$|$name of clusters defining factor on the right hand side. The 1 can also be substituted by an additional covariate. For a more flexible definition, a list of different pdClasses objects of nlme can be given.
+\item[start] Starting values for the nlme function. If NULL, the initial values for the fixed effects are found automatically, using the self start functionality of package drc.
+\end{description}
+
+
+\subsection{Dose-response curve parameterization}
+
+In drc a number of different dose-response models are available. Each model can be simplified, by fixing a parameter to a specific values instead of estimating it from the data.
+
+The parameters are defined in a unified way with
+\begin{description}
+\item[b] steepness of the curve
+\item[c] lower asymptote
+\item[d] upper asymptote
+\item[e] location of the inflection point
+\item[f] asymmetry parameter
+\end{description}
+
+\subsubsection*{5-parameter logistic L.5()}
+
+\[ f(x) = c + \frac{d-c}{(1+\exp(b(x - e)))^f} \]
+
+\subsubsection*{5-parameter log-logistic LL.5()}
+
+\[ f(x) = c + \frac{d-c}{(1+\exp(b(\log(x)-\log(e))))^f} \]
+
+\subsubsection*{4 parameter Weibull W1.4() and W2.4()}
+
+\[ f(x) = c + (d-c) \exp(-\exp(b(\log(x)-\log(e)))) \]
+
+or 
+
+\[ f(x) = c + (d-c) (1 - \exp(-\exp(b(\log(x)-\log(e))))) \]
+
+
+\subsubsection*{4 parameter log-Normal LN.4()}
+
+\[ f(x) = c + (d-c)(\Phi(b(\log(x)-\log(e)))) \]
+
+
+\subsubsection*{gompertz()}
+
+\[ f(x) = c + (d-c)(\exp(-\exp(b(x-e)))) \]
+
+
+\subsubsection*{3 parameter Michaelis-Menten MM.3()}
+
+\[ f(x, (c, d, e)) = c + \frac{d-c}{1+(e/x)} \]
+
+
+\subsubsection*{Further functions}
+
+More functions are available, like fractional polynomial-logistic models fplogistic(p1, p2), or the Brain-Cousens hormesis model braincousens().
+
+
+
+\subsection{Broccoli data: 5 parameter logistic model}
+
+Let us assume that the growth curves for each individual follow a 4 parameter log-logistic model with different parameters for each stress treatment except the lower asymptote. The model function can be conveniently defined as a predefined function of package drc. The parameterization of different fixed effect effect vectors per treatment level can be defined by a curveid argument, with the name of a fixed effect factor in the dataset on the right hand side of a formula, and the parameters to change for different curves on the left hand side. The definition of random effects follow in a similar way. The random genotype effects are parameterized by a variance component for the upper asymptote, and the location of the inflection point. To model the dependency of observations measured at the same plant over time, a second set of random effects is assumed within the genotype effects to model the variance between individuals within genotypes.
+
+For a simplification we ignore the real aim of the study to detect genotype specific stress effects and just model an additive stress effect for each genotype. The same lower asymptote (parameter c) is assumed for both stress treatment levels, as at the beginning of the experiment, all plants are watered at the same level.
+
+<<5pl, tidy=FALSE>>=
+m5pl <- medrm(LeafLength ~ Day, data=bro, 
+              fct=L.5(), 
+              curveid=b + d + e + f ~ Stress, 
+              random=d + e ~ 1|Genotype/ID)
+
+print(m5pl)
+@
+
+With the summary method, the summary output of the nlme component can be accessed. There are also some methods, like VarCorr, to access the specific nlme slots. For any special information about the nlme estimation, the nlme object is stored in a list slot named fit.
+<<vcorr>>=
+VarCorr(m5pl)
+# same as
+VarCorr(m5pl$fit)
+@
+
+
+The predicted random effects can be directly accessed by the function ranef().
+<<ranef, fig.height=5, fig.width=5, tidy=FALSE>>=
+re <- ranef(m5pl)[[1]]
+head(re)
+
+panellab <- function(x, y, ...){
+  abline(h=0, lty=2)
+  abline(v=0, lty=2)
+  text(x, y, rownames(re))
+}
+pairs(re, panel = panellab)
+@
+
+
+
+The growth curves based just on the fixed effects of the model can also be plotted. This ggplot object can be extended by some further ggplot2 functions. A plot of curves, conditional on the random effects, is not yet implemented when several fixed effects curves are present.
+<<plotfixed, fig.height=5, tidy=FALSE>>=
+plot(m5pl) +
+  geom_line(data=bro, aes(group=ID), linetype=2, alpha=0.2) +
+  theme_bw()  
+@
+
+Other diagnostic graphics, like residuals vs. fitted values, are also easily available.
+<<res_vs_fitted, fig.height=5>>=
+plot(residuals(m5pl) ~ fitted(m5pl))
+abline(h=0, lty=2, col="red3")
+@
+
+
+
+
+\section{Sets of dose-response models}
+
+By specifying the nonlinear function $f(x_{ij}, \boldsymbol{\beta}_{i})$ the principle shape of the curve is treated as known. Without any prior knowledge about the progress of the dose-response curve it is reasonable to choose from a larger set of dose-response models instead of assuming a single fixed function. With a set of candidate models a specific dose-response relationship can be selected based on the data, or model averaging approaches can be used to incorporate the model uncertainty into the parameter inference.
+
+The framework of package drc allows to fit several dose-response models to the same data in an automated fashion, with several, predefined dose-response curves, all of them composed of a similar set of similar defined parameters with lower and upper asymptotes, steepness, inflection points, etc. As these model functions can be directly used in medrc, the formula interfaces enable the composition of a set of models with different fixed and random effect parameterizations and different dose-response shapes.
+
+For example, a set of different log-logistic and Weibull models can be fitted for the broccoli data.
+
+<<multimodel, tidy=FALSE, eval=FALSE>>=
+# 3 parameter logistic with lower asymptote fixed at 0
+mod1 <- medrm(LeafLength ~ Day, data=bro, 
+              fct=L.3(), 
+              curveid=b + d + e ~ Stress, 
+              random=d + e ~ 1|Genotype/ID)
+# 4 parameter logistic 
+# with the same lower asymptote for both stress treatments
+mod2 <- medrm(LeafLength ~ Day, data=bro, 
+              fct=L.4(fixed=c(NA, 5, NA, NA)), 
+              curveid=b + d + e ~ Stress, 
+              random=d + e ~ 1|Genotype/ID)
+# 4 parameter Weibull model
+mod3 <- medrm(LeafLength ~ Day, data=bro, 
+              fct=W1.4(), 
+              curveid=b + d + e ~ Stress, 
+              random=d + e ~ 1|Genotype/ID)
+# 2nd parameterization of 4 parameter Weibull model
+mod4 <- medrm(LeafLength ~ Day, data=bro, 
+              fct=W2.4(), 
+              curveid=b + d + e ~ Stress, 
+              random=d + e ~ 1|Genotype/ID)
+# even a 4 parameter logistic with same parameters
+# for both stress treatments is available with a onesided curveid formula
+mod5 <- medrm(LeafLength ~ Day, data=bro, 
+              fct=L.4(), 
+              curveid= ~ Stress, 
+              random=d + e ~ 1|Genotype/ID)
+# or a 4p-log-logistic model with a lower asymptote fixed at 5
+mod6 <- medrm(LeafLength ~ Day, data=bro, 
+              fct=L.4(fixed=c(NA, 5, NA, NA)), 
+              curveid=d + e ~ Stress, 
+              random=d + e ~ 1|Genotype/ID)
+@
+
+The different curves can be displayed by the function mmplot().
+<<multimodelplot, fig.height=5, tidy=FALSE, eval=FALSE>>=
+mmplot(mod1, mod2, mod3, mod4, mod5, mod6, ndose=50)
+@
+
+
+
+
+\section{Parameter inference}
+
+As the medrc class provides a coef and vcov method, simultaneous confidence intervals and multiple tests for the fixed effects are directly provided by the add-on packages multcomp. By multiple contrast tests, the comparison of drought stress to the control can be performed for each fixed effect parameter (except the lower asymptote).
+<<multcomp, tidy=FALSE, message=FALSE>>=
+library(multcomp)
+K <- rbind("drought-control | b"=c(-1, 1,  0, 0,  0, 0,  0, 0,  0, 0),
+           "drought-control | d"=c( 0, 0,  0, 0, -1, 1,  0, 0,  0, 0),
+           "drought-control | e"=c( 0, 0,  0, 0,  0, 0, -1, 1,  0, 0),
+           "drought-control | f"=c( 0, 0,  0, 0,  0, 0,  0, 0, -1, 1))
+gg <- glht(m5pl, linfct=K)
+summary(gg)
+@
+
+
+\section{Inference for derived parameters}
+
+Instead of interpreting the model parameters directly, we can set focus on derived parameters, like the effective dose at a specific level $ED(p)$ or the ratio of two effective doses, known as relative potency. Inference for the $ED(p)$ parameters are available by using the Delta-method to approximate the variance-covariance of the derived parameters. 
+
+The growth curve of the broccoli leaf lengths can be summarized, for example, by the effective dose, or in our case by the estimated day, at which 50\% or any other percentage of the full length of a leaf is reached. Inference based on the fixed effects can be directly obtained by using the function ED in the drc package.
+<<EDdrc>>=
+ED(m5pl, respLev=c(25, 50, 75), interval="delta")
+@
+Comparisons of these ED parameters can be made with the drc function SI.
+<<SIdrc>>=
+SI(m5pl, percVec=c(25, 25), interval="delta")
+@
+
+When a set of models are available, the model-averaged ED estimates can be estimated by the medrc function mmaED(). The model specific estimates are weighted by the corresponding information criteria for each model, e.g. using Akaike weights. It is recommended to use maximum likelihood estimation instead of REML, and not mixing simultaneous changes of fixed and random effect structures between the models. 
+<<mmaED, eval=FALSE>>=
+mmaED(mod1, mod2, mod3, mod4, mod5, mod6, respLev=c(25, 50, 75), interval="kang")
+@
+
+
+
+\section{Marginal vs. subject specific predictions}
+
+Other than in linear models, the fixed effect parameter in nonlinear mixed effect models can not be interpreted independently from the random effects as a vector of population parameters. Instead only a subject specific interpretation conditional on the random effects is generally available, as
+\[ E\left\{f(x_{ij}, \boldsymbol{\beta}_{i})) \right\} \neq f(x_{ij}, \boldsymbol{A}_{i}\boldsymbol{\beta}). \]
+
+To obtain the marginal mean response nevertheless from a hierarchical nonlinear model, a more or less complex integral has to be solved.
+The marginal expectation for a model with a single fixed effect curve and uncorrelated random effects is equal to
+\[ E\left\{f(x_{ij}, \boldsymbol{\beta}_{i}) \right\} = \int \cdots \int f(x_{ij}, (\beta_{1} + b_{1}, \dots, \beta_{p} + b_{p})) \; \Phi(b_{1}) \cdots \Phi(b_{p}) \; d b_{1} \cdots db_{p} \]
+where $\Phi()$ denotes the univariate Gaussian density with mean 0 and the variance equal to the diagonal entries in $\boldsymbol{G}$.
+The multiple integral can be approximated by the weighted sum
+\[ E\left\{f(x_{ij}, \boldsymbol{\beta}_{i}) \right\} \approx \sum_{n=1}^{N} w_{n} f(x_{ij}, (\beta_{1} + \xi_{1n}, \dots, \beta_{p} + \xi_{pn})), \quad \mbox{with} \quad w_{n} = \prod_{r=1}^{p} w_{rn} \]
+using numerical quadrature, with a $(p \times N)$ grid of nodes $\xi_{rn}$ and corresponding weights $w_{rn}$.
+For correlated random effects the nodes can be rotated by a matrix of eigenvectors, transforming the matrix of random effects into a set of uncorrelated variables. 
+
+The medrc package uses package statmod to calculate the nodes and weights for Gauss-Hermite quadrature.
+
+
+\subsection{Marginal effective dose estimation}
+
+We might want to marginalize the ED of the broccoli model conditional on the estimated variance components by numerical integration methods. The medrc package provides functions EDmarg and SImarg, but assuming only simple random effect structures.
+
+<<EDSImarg>>=
+EDmarg(m5pl, respLev=c(25, 50, 75), interval="delta", nGQ=3)
+SImarg(m5pl, percVec=c(25, 25), interval="delta", nGQ=3)
+@
+In this case there are only small changes compared to the fixed effects estimates; a difference can be observed, when the variance component for the steepness, the location of the inflection point increases, or a variance component for the asymmetry parameter is introduced into the model.
+
+
+
+
+\bibliographystyle{plainnat}
+\bibliography{medrc.bib}
+
+\end{document}
