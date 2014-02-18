@@ -1,6 +1,4 @@
 plot.medrc <- function(x, ..., ndose=25, ranef=FALSE, level=NULL, logx=FALSE){
-  require(ggplot2)
-  require(plyr)
   fct <- x$fct
   makehelpfunction(fct)
   
@@ -21,6 +19,7 @@ plot.medrc <- function(x, ..., ndose=25, ranef=FALSE, level=NULL, logx=FALSE){
       m0 <- min(mf[,2]) 
     }
     dr <- exp(seq(log(m0), log(max(mf[,2])), length=ndose))
+    mf[mf[,2] == 0, 2] <- m0
   } else {
     dr <- seq(min(mf[,2]), max(mf[,2]), length=ndose)
   } 
