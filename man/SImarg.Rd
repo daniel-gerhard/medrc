@@ -9,7 +9,7 @@
 }
 
 \usage{
-  SImarg(object, percVec, compMatch = NULL, reverse = FALSE, 
+  SImarg(object, percVec, percMat=NULL, compMatch = NULL, reverse = FALSE, 
   interval = c("none", "delta", "fieller", "fls"), 
   level = ifelse(!(interval == "none"), 0.95, NULL),
   reference = c("control", "upper"),  
@@ -21,6 +21,7 @@
 \arguments{
   \item{object}{an object of class 'medrc'.}
   \item{percVec}{a numeric vector of dosage values.}
+  \item{percMat}{a matrix with two columns indexing the percVec position to specify ED comparisons.}
   \item{compMatch}{an optional character vector of names of assays to be compared. If not specified all comparisons are supplied.}
   \item{reverse}{logical. If TRUE the order of comparison of two curves is reversed.}
   \item{interval}{character string specifying the type of confidence intervals to be supplied. The default is "none". 

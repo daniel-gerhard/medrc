@@ -1,4 +1,4 @@
-SImarg <- function(object, percVec, compMatch = NULL, reverse = FALSE, interval = c("none", "delta", "fieller", "fls"), level = ifelse(!(interval == "none"), 0.95, NULL), reference = c("control", "upper"), type = c("relative", "absolute"), nGQ=5, rfinterval=c(-1000, 1000), display = TRUE, logBase = NULL, ...){  
+SImarg <- function(object, percVec, percMat = NULL, compMatch = NULL, reverse = FALSE, interval = c("none", "delta", "fieller", "fls"), level = ifelse(!(interval == "none"), 0.95, NULL), reference = c("control", "upper"), type = c("relative", "absolute"), nGQ=5, rfinterval=c(-1000, 1000), display = TRUE, logBase = NULL, ...){  
   interval <- match.arg(interval)
   reference <- match.arg(reference)
   type <- match.arg(type)
@@ -118,7 +118,9 @@ SImarg <- function(object, percVec, compMatch = NULL, reverse = FALSE, interval 
   degfree <- df.residual(object)
   rowIndex <- 1
   pairsMat <- combinations(lenEB, 2)
-  percMat <- combinations(lenPV, 2)
+  if (is.null(percMat)) {
+    percMat <- combinations(lenPV, 2)
+  }
   if (reverse){
     pairsMat <- pairsMat[, 2:1, drop = FALSE]
     percMat <- percMat[, 2:1, drop = FALSE]
