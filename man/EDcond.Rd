@@ -11,7 +11,7 @@
 }
 
 \usage{
-  EDcond(object, respLev, cranef=NULL, interval = c("none", "delta", "fls", "tfls"), 
+  EDcond(object, respLev, rlevel=Q, interval = c("none", "delta", "fls", "tfls"), 
          level = ifelse(!(interval == "none"), 0.95, NULL), reference = c("control", "upper"), 
          type = c("relative", "absolute"), lref, uref, bound = TRUE, 
          display = TRUE, logBase = NULL, ...)
@@ -20,7 +20,7 @@
 \arguments{
   \item{object}{an object of class 'medrc'.}
   \item{respLev}{a numeric vector containing the response levels.}
-  \item{cranef}{a matrix containing random effects for conditional ED estimation. Column names need to be the same as the model parameters (b,c,d,e,...). If NULL, the random effects of the model object are used. Only works with a single variance component and single intercepts per non-linear model parameters.}
+  \item{rlevel}{an optional positive integer giving the level of grouping as defined in package nlme.}
   \item{interval}{character string specifying the type of confidence intervals to be supplied. The default is "none". 
   Use "delta" for asymptotics-based confidence intervals (using the delta method and the t-distribution).
   Use "fls" for from logarithm scale based confidence intervals (in case the parameter in the model is log(ED50) as for

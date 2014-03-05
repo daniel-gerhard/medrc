@@ -1,4 +1,5 @@
-EDcond <- function (object, respLev, cranef=NULL, interval = c("none", "delta", "fls", "tfls"), level = ifelse(!(interval == "none"), 0.95, NULL), reference = c("control", "upper"), type = c("relative", "absolute"), lref, uref, bound = TRUE, display = TRUE, logBase = NULL, ...){
+EDcond <- function (object, respLev, rlevel=Q, interval = c("none", "delta", "fls", "tfls"), level = ifelse(!(interval == "none"), 0.95, NULL), reference = c("control", "upper"), type = c("relative", "absolute"), lref, uref, bound = TRUE, display = TRUE, logBase = NULL, ...){
+  Q <- object$fit$dims$Q
   interval <- match.arg(interval)
   reference <- match.arg(reference)
   type <- match.arg(type)
@@ -11,37 +12,10 @@ EDcond <- function (object, respLev, cranef=NULL, interval = c("none", "delta", 
   if (is.null(EDlist)) {
     stop("ED values cannot be calculated")
   }
-  indexMat <- object$indexMat
-  parmMat <- object$parmMat
+  mcoefs <- cbind(coef(object$fit, level=rlevel))
+  indexMat <- matrix(1:prod(dim(mcoefs)), nrow=ncol(mcoefs), ncol=nrow(mcoefs))
+  parmMat <- t(mcoefs)
   
-  pnames <- rownames(parmMat)
-  
-  #### cranef=NULL
-  if (is.null(cranef)){
-    randinfo <- lapply(object$fit$plist, function(x) x$random)
-    ran <- ranef(object$fit)  
-    
-    # single vc
-    rn <- names(ran)
-    rnspl <- strsplit(rn, ".", fixed=TRUE)
-    nrn <- sapply(rnspl, function(x) x[1])
-    rest <- sapply(rnspl, function(x) x[2])
-  } else {
-    ran <- cranef
-    if (is.null(rownames(ran))) rownames(ran) <- 1:nrow(ran)
-    if (is.null(colnames(ran))) stop("cranef needs column names!")
-    if (any(!(colnames(ran) %in% pnames))) stop("column names of cranef need to be a parameter name!")
-    nrn <- colnames(ran)
-  }
-    
-  mr <- matrix(0, ncol=length(pnames), nrow=nrow(ran), dimnames=list(rownames(ran), pnames))
-  wn <- sapply(1:length(nrn), function(i) which(pnames == nrn[i]))
-  mr[,wn] <- as.matrix(ran)
-  
-  # extend parmMat
-  parmMat <- matrix(as.vector(apply(mr, 1, function(x) parmMat + x)), nrow=nrow(parmMat), dimnames=list(pnames, paste(rep(colnames(parmMat), times=nrow(mr)), rep(rownames(ran), each=ncol(indexMat)), sep=":")))
-  
-  indexMat <- matrix(1:length(parmMat), nrow=nrow(parmMat), dimnames=list(pnames, colnames(parmMat)))
   
   strParm0 <- sort(colnames(parmMat))
   curveNames <- colnames(parmMat)
@@ -56,8 +30,7 @@ EDcond <- function (object, respLev, cranef=NULL, interval = c("none", "delta", 
   indexMat <- indexMat[, curveOrder, drop = FALSE]
   parmMat <- parmMat[, curveOrder, drop = FALSE]
   strParm <- strParm0
-  vcMat <- vcov(object)
-  vcMat <- kronecker(diag(nrow(mr)), vcMat)
+  vcMat <- kronecker(diag(ncol(parmMat)), vcov(object, od = od, pool = pool))
   ncolIM <- ncol(indexMat)
   indexVec <- 1:ncolIM
   lenPV <- length(respLev)
@@ -71,33 +44,43 @@ EDcond <- function (object, respLev, cranef=NULL, interval = c("none", "delta", 
     strParm <- paste(strParm, ":", sep = "")
   }
   rowIndex <- 1
+  lenIV <- length(indexVec)
+  dEDmat <- matrix(0, lenPV * lenIV, nrow(vcMat))
   for (i in indexVec) {
     parmChosen <- parmMat[, i]
     parmInd <- indexMat[, i]
     varCov <- vcMat[parmInd, parmInd]
-    for (j in 1:lenPV) {
-      EDeval <- EDlist(parmChosen, respLev[j], reference = reference, type = type, ...)
-      EDval <- EDeval[[1]]
-      dEDval <- EDeval[[2]]
-      oriMat[rowIndex, 1] <- EDval
-      oriMat[rowIndex, 2] <- sqrt(dEDval %*% varCov %*% dEDval)
-      if (!is.null(logBase)) {
-        EDval <- logBase^(EDval)
-        dEDval <- EDval * log(logBase) * dEDval
+    if ((is.null(clevel)) || (strParm0[i] %in% clevel)) {
+      for (j in 1:lenPV) {
+        EDeval <- EDlist(parmChosen, respLev[j], reference = reference, 
+                         type = type)
+        EDval <- EDeval[[1]]
+        dEDval <- EDeval[[2]]
+        dEDmat[(i - 1) * lenPV + j, parmInd] <- dEDval
+        oriMat[rowIndex, 1] <- EDval
+        oriMat[rowIndex, 2] <- sqrt(dEDval %*% varCov %*% dEDval)
+        if (!is.null(logBase)) {
+          EDval <- logBase^(EDval)
+          dEDval <- EDval * log(logBase) * dEDval
+        }
+        EDmat[rowIndex, 1] <- EDval
+        EDmat[rowIndex, 2] <- sqrt(dEDval %*% varCov %*% dEDval)
+        dimNames[rowIndex] <- paste(strParm[i], respLev[j], sep = "")
+        rowIndex <- rowIndex + 1
       }
-      EDmat[rowIndex, 1] <- EDval
-      EDmat[rowIndex, 2] <- sqrt(dEDval %*% varCov %*% dEDval)
-      dimNames[rowIndex] <- paste(strParm[i], respLev[j], sep = "")
-      rowIndex <- rowIndex + 1
-    }    
+    } else {
+      rowsToRemove <- rowIndex:(rowIndex + lenPV - 1)
+      EDmat <- EDmat[-rowsToRemove, , drop = FALSE]
+      dimNames <- dimNames[-rowsToRemove]
+    }
   }
   colNames <- c("Estimate", "Std. Error")
   if (interval == "delta") {
-    intMat <- drc:::confint.basic(EDmat, level, object$type, df.residual(object), FALSE)
+    intMat <- eval(parse(text="drc:::confint.basic(EDmat, level, object$type, df.residual(object), FALSE)"))
     intLabel <- "Delta method"
   }
   if (interval == "tfls") {
-    intMat <- exp(drc:::confint.basic(matrix(c(log(oriMat[, 1]), oriMat[, 2]/oriMat[, 1]), ncol = 2), level, object$type, df.residual(object), FALSE))
+    intMat <- eval(parse(text="exp(drc:::confint.basic(matrix(c(log(oriMat[, 1]), oriMat[, 2]/oriMat[, 1]), ncol = 2), level, object$type, df.residual(object), FALSE))"))
     intLabel <- "To and from log scale"
   }
   if (interval == "fls") {
@@ -105,7 +88,7 @@ EDcond <- function (object, respLev, cranef=NULL, interval = c("none", "delta", 
       logBase <- exp(1)
       EDmat[, 1] <- exp(EDmat[, 1])
     }
-    intMat <- logBase^(drc:::confint.basic(oriMat, level, object$type, df.residual(object), FALSE))
+    intMat <- eval(parse(text="logBase^(drc:::confint.basic(oriMat, level, object$type, df.residual(object), FALSE))"))
     intLabel <- "Back-transformed from log scale"
     EDmat <- EDmat[, -2, drop = FALSE]
     colNames <- colNames[-2]
@@ -117,5 +100,6 @@ EDcond <- function (object, respLev, cranef=NULL, interval = c("none", "delta", 
     colNames <- c(colNames, "Lower", "Upper")
   }
   dimnames(EDmat) <- list(dimNames, colNames)
-  drc:::resPrint(EDmat, "Estimated effective doses", interval, intLabel, display = display)
+  eval(parse(text="drc:::resPrint(EDmat, 'Estimated effective doses', interval, intLabel, display = display)"))
 }
+ 
