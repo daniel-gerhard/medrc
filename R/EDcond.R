@@ -50,28 +50,22 @@ EDcond <- function (object, respLev, rlevel=Q, interval = c("none", "delta", "fl
     parmChosen <- parmMat[, i]
     parmInd <- indexMat[, i]
     varCov <- vcMat[parmInd, parmInd]
-    if ((is.null(clevel)) || (strParm0[i] %in% clevel)) {
-      for (j in 1:lenPV) {
-        EDeval <- EDlist(parmChosen, respLev[j], reference = reference, 
-                         type = type)
-        EDval <- EDeval[[1]]
-        dEDval <- EDeval[[2]]
-        dEDmat[(i - 1) * lenPV + j, parmInd] <- dEDval
-        oriMat[rowIndex, 1] <- EDval
-        oriMat[rowIndex, 2] <- sqrt(dEDval %*% varCov %*% dEDval)
-        if (!is.null(logBase)) {
-          EDval <- logBase^(EDval)
-          dEDval <- EDval * log(logBase) * dEDval
-        }
-        EDmat[rowIndex, 1] <- EDval
-        EDmat[rowIndex, 2] <- sqrt(dEDval %*% varCov %*% dEDval)
-        dimNames[rowIndex] <- paste(strParm[i], respLev[j], sep = "")
-        rowIndex <- rowIndex + 1
+    for (j in 1:lenPV) {
+      EDeval <- EDlist(parmChosen, respLev[j], reference = reference, 
+                       type = type)
+      EDval <- EDeval[[1]]
+      dEDval <- EDeval[[2]]
+      dEDmat[(i - 1) * lenPV + j, parmInd] <- dEDval
+      oriMat[rowIndex, 1] <- EDval
+      oriMat[rowIndex, 2] <- sqrt(dEDval %*% varCov %*% dEDval)
+      if (!is.null(logBase)) {
+        EDval <- logBase^(EDval)
+        dEDval <- EDval * log(logBase) * dEDval
       }
-    } else {
-      rowsToRemove <- rowIndex:(rowIndex + lenPV - 1)
-      EDmat <- EDmat[-rowsToRemove, , drop = FALSE]
-      dimNames <- dimNames[-rowsToRemove]
+      EDmat[rowIndex, 1] <- EDval
+      EDmat[rowIndex, 2] <- sqrt(dEDval %*% varCov %*% dEDval)
+      dimNames[rowIndex] <- paste(strParm[i], respLev[j], sep = "")
+      rowIndex <- rowIndex + 1
     }
   }
   colNames <- c("Estimate", "Std. Error")
