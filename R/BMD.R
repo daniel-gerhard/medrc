@@ -30,7 +30,7 @@ BMD <- function(object, respLev, interval = c("none", "delta", "fls", "tfls"), l
   if (interval == "tfls") intLabel <- "To and from log scale"
   if (interval == "fls") intLabel <- "Back-transformed from log scale"
   bmdrn <- rownames(ED(object, respLev=respLev, display=FALSE))
-  bmdest <- ED(object, respLev=adjrespLev, interval=interval, level=level, display=FALSE)
+  bmdest <- ED(object, respLev=adjrespLev, interval=interval, level=level, display=FALSE)[[1]]
   rownames(bmdest) <- bmdrn
   eval(parse(text="drc:::resPrint(bmdest, 'Estimated benchmark doses', interval, intLabel, display = display)"))
 }
