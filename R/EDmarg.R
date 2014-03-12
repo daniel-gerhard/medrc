@@ -1,4 +1,4 @@
-EDmarg <- function (object, respLev, interval = c("none", "delta", "fls", "tfls"), level = ifelse(!(interval == "none"), 0.95, NULL), reference = c("control", "upper"), type = c("relative", "absolute"), nGQ=5, rfinterval=c(0, 1000), lref, uref, bound = TRUE, display = TRUE, logBase = NULL, ...){
+EDmargm <- function (object, respLev, interval = c("none", "delta", "fls", "tfls"), clevel=NULL, level = ifelse(!(interval == "none"), 0.95, NULL), reference = c("control", "upper"), type = c("relative", "absolute"), nGQ=5, rfinterval=c(0, 1000), lref, uref, bound = TRUE, display = TRUE, logBase = NULL, ...){
   interval <- match.arg(interval)
   reference <- match.arg(reference)
   type <- match.arg(type)
@@ -30,7 +30,7 @@ EDmarg <- function (object, respLev, interval = c("none", "delta", "fls", "tfls"
   vccor <- lapply(vclist, cov2cor)
   strspl <- lapply(vclist, function(x) strsplit(names(diag(x)), ".", fixed=TRUE))
   nrnl <- lapply(strspl, function(x) sapply(x, function(x) x[1]))
- 
+  
   ###
   gq <- gauss.quad.prob(n=nGQ, dist="normal", sigma=1)  
   
@@ -39,7 +39,7 @@ EDmarg <- function (object, respLev, interval = c("none", "delta", "fls", "tfls"
     cormat <- vccor[[v]]
     nrn <- nrnl[[v]]
     nv <- length(std)
-  
+    
     eg <- eval(parse(text=paste("expand.grid(", paste(rep("gq$nodes", nv), collapse=","), ")", sep="")))
     weg <- eval(parse(text=paste("expand.grid(", paste(rep("gq$weights", nv), collapse=","), ")", sep="")))
     w <- apply(weg, 1, function(x) prod(x))
@@ -121,27 +121,37 @@ EDmarg <- function (object, respLev, interval = c("none", "delta", "fls", "tfls"
     return(out)
   }
   
+  lenIV <- length(indexVec)
+  dEDmat <- matrix(0, lenPV * lenIV, nrow(vcMat))
   rowIndex <- 1
   for (i in indexVec) {
     parmChosen <- parmMat[, i]
     parmInd <- indexMat[, i]
     varCov <- vcMat[parmInd, parmInd]
-    for (j in 1:lenPV) {
-      EDeval <- EDlistm(parmChosen, respLev[j], reference = reference, type = type, intgrid=intgrid, intweights=w, rfinterval=rfinterval)
-      EDval <- EDeval[[1]]
-      dEDval <- EDeval[[2]]
-      oriMat[rowIndex, 1] <- EDval
-      oriMat[rowIndex, 2] <- sqrt(dEDval %*% varCov %*% dEDval)
-      if (!is.null(logBase)) {
-        EDval <- logBase^(EDval)
-        dEDval <- EDval * log(logBase) * dEDval
-      }
-      EDmat[rowIndex, 1] <- EDval
-      EDmat[rowIndex, 2] <- sqrt(dEDval %*% varCov %*% dEDval)
-      dimNames[rowIndex] <- paste(strParm[i], respLev[j], sep = "")
-      rowIndex <- rowIndex + 1
-    }    
-  }
+    if ((is.null(clevel)) || (strParm0[i] %in% clevel)){
+      for (j in 1:lenPV) {
+        EDeval <- EDlistm(parmChosen, respLev[j], reference = reference, type = type, intgrid=intgrid, intweights=w, rfinterval=rfinterval)
+        EDval <- EDeval[[1]]
+        dEDval <- EDeval[[2]]
+        dEDmat[(i-1)*lenPV + j, parmInd] <- dEDval 
+        oriMat[rowIndex, 1] <- EDval
+        oriMat[rowIndex, 2] <- sqrt(dEDval %*% varCov %*% dEDval)
+        if (!is.null(logBase)) {
+          EDval <- logBase^(EDval)
+          dEDval <- EDval * log(logBase) * dEDval
+        }
+        EDmat[rowIndex, 1] <- EDval
+        EDmat[rowIndex, 2] <- sqrt(dEDval %*% varCov %*% dEDval)
+        dimNames[rowIndex] <- paste(strParm[i], respLev[j], sep = "")
+        rowIndex <- rowIndex + 1
+      }    
+    } else {
+      rowsToRemove <- rowIndex:(rowIndex + lenPV - 1)
+      EDmat <- EDmat[-rowsToRemove, , drop = FALSE]
+      dimNames <- dimNames[-rowsToRemove]
+    }
+  } 
+  
   colNames <- c("Estimate", "Std. Error")
   if (interval == "delta") {
     intMat <- eval(parse(text="drc:::confint.basic(EDmat, level, object$type, df.residual(object), FALSE)"))
@@ -169,4 +179,5 @@ EDmarg <- function (object, respLev, interval = c("none", "delta", "fls", "tfls"
   }
   dimnames(EDmat) <- list(dimNames, colNames)
   eval(parse(text="drc:::resPrint(EDmat, 'Estimated effective doses', interval, intLabel, display = display)"))
+  invisible(list(EDmat, EDmultcomp = parm(EDmat[, 1], (dEDmat %*% vcMat %*% t(dEDmat))[1:nrow(EDmat), 1:nrow(EDmat),drop=FALSE])))
 }
