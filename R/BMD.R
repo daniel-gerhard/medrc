@@ -29,8 +29,17 @@ BMD <- function(object, respLev, interval = c("none", "delta", "fls", "tfls"), l
   if (interval == "delta") intLabel <- "Delta method"
   if (interval == "tfls") intLabel <- "To and from log scale"
   if (interval == "fls") intLabel <- "Back-transformed from log scale"
-  bmdrn <- rownames(ED(object, respLev=respLev, display=FALSE))
-  bmdest <- ED(object, respLev=adjrespLev, interval=interval, level=level, display=FALSE)[[1]]
-  rownames(bmdest) <- bmdrn
+  if (ncol(object$parmMat) > 1){ 
+    cid <- colnames(object$parmMat)
+    bmdrn <- rownames(ED(object, respLev=adjrespLev, display=FALSE)[[1]])
+    el <- lapply(1:length(cid), function(ci) ED(object, respLev=adjrespLev[ci,], clevel=cid[ci], interval=interval, level=level, display=FALSE)[[1]])
+    bmdest <- matrix(simplify2array(el), ncol=ncol(el[[1]]))
+    rownames(bmdest) <- as.vector(sapply(el, rownames))
+    colnames(bmdest) <- colnames(el[[1]])    
+  } else {
+    bmdrn <- rownames(ED(object, respLev=respLev, display=FALSE)[[1]])
+    bmdest <- ED(object, respLev=adjrespLev, interval=interval, level=level, display=FALSE)[[1]]
+    rownames(bmdest) <- bmdrn
+  }
   eval(parse(text="drc:::resPrint(bmdest, 'Estimated benchmark doses', interval, intLabel, display = display)"))
 }
