@@ -169,8 +169,7 @@ For a simplification we ignore the real aim of the study to detect genotype spec
 m5pl <- medrm(LeafLength ~ Day, data=bro, 
               fct=L.5(), 
               curveid=b + d + e + f ~ Stress, 
-              random=d + e ~ 1|Genotype/ID,
-              randomstart=FALSE)
+              random=d + e ~ 1|Genotype/ID)
 
 print(m5pl)
 @
@@ -227,40 +226,34 @@ For example, a set of different log-logistic and Weibull models can be fitted fo
 mod1 <- medrm(LeafLength ~ Day, data=bro, 
               fct=L.3(), 
               curveid=b + d + e ~ Stress, 
-              random=d + e ~ 1|Genotype/ID,
-              randomstart=FALSE)
+              random=d + e ~ 1|Genotype/ID)
 # 4 parameter logistic 
 # with the same lower asymptote for both stress treatments
 mod2 <- medrm(LeafLength ~ Day, data=bro, 
               fct=L.4(fixed=c(NA, 5, NA, NA)), 
               curveid=b + d + e ~ Stress, 
-              random=d + e ~ 1|Genotype/ID,
-              randomstart=FALSE)
+              random=d + e ~ 1|Genotype/ID)
 # 4 parameter Weibull model
 mod3 <- medrm(LeafLength ~ Day, data=bro, 
               fct=W1.4(), 
               curveid=b + d + e ~ Stress, 
-              random=d + e ~ 1|Genotype/ID,
-              randomstart=FALSE)
+              random=d + e ~ 1|Genotype/ID)
 # 2nd parameterization of 4 parameter Weibull model
 mod4 <- medrm(LeafLength ~ Day, data=bro, 
               fct=W2.4(), 
               curveid=b + d + e ~ Stress, 
-              random=d + e ~ 1|Genotype/ID,
-              randomstart=FALSE)
+              random=d + e ~ 1|Genotype/ID)
 # even a 4 parameter logistic with same parameters
 # for both stress treatments is available with a onesided curveid formula
 mod5 <- medrm(LeafLength ~ Day, data=bro, 
               fct=L.4(), 
               curveid= ~ Stress, 
-              random=d + e ~ 1|Genotype/ID,
-              randomstart=FALSE)
+              random=d + e ~ 1|Genotype/ID)
 # or a 4p-log-logistic model with a lower asymptote fixed at 5
 mod6 <- medrm(LeafLength ~ Day, data=bro, 
               fct=L.4(fixed=c(NA, 5, NA, NA)), 
               curveid=d + e ~ Stress, 
-              random=d + e ~ 1|Genotype/ID,
-              randomstart=FALSE)
+              random=d + e ~ 1|Genotype/ID)
 @
 
 The different curves can be displayed by the function mmplot().
