@@ -7,8 +7,8 @@ Implements drc nonlinear functions into the nlme framework for mixed
 effects dose-response modeling.
 }
 \usage{
-medrm(form, curveid=NULL, data, fct, random, correlation = NULL, 
-      weights = NULL, control = NULL, start = NULL, REML=FALSE)
+medrm(form, curveid=NULL, data, fct, random, correlation = NULL, weights = NULL, 
+      control = NULL, start = NULL, randomstart=TRUE, REML=FALSE)
 }
 
 \arguments{
@@ -21,6 +21,7 @@ medrm(form, curveid=NULL, data, fct, random, correlation = NULL,
   \item{weights}{additional varClasses object}
   \item{control}{list with nlme control arguments}
   \item{start}{optional list with initial values for the fixed components. If NULL the initial values will be found automatically.}
+  \item{randomstart}{logical. If TRUE, additional to the fixed effect starting values, random effect starting values are computed. Experimental!}
   \item{REML}{logical value. If TRUE the model is fit by maximizing the restricted log-likelihood, if FALSE log-likelihood is maximized.}
 }
 
