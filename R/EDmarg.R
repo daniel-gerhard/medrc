@@ -22,12 +22,11 @@ EDmarg <- function (object, respLev, interval = c("none", "delta", "fls", "tfls"
     sigE <- object$sig^2
     sigE*pdMatrix(object$modelStruct$reStruct)[[level]]
   }
-  
+
   # extract variance components
   ranefs <- ranef(object$fit)
   nvc <- length(object$fit$modelStruct$reStruct)
   vclist <- lapply(1:nvc, function(i) varRan(object$fit, level=i))
-  vccor <- lapply(vclist, cov2cor)
   strspl <- lapply(vclist, function(x) strsplit(names(diag(x)), ".", fixed=TRUE))
   nrnl <- lapply(strspl, function(x) sapply(x, function(x) x[1]))
   
@@ -35,18 +34,15 @@ EDmarg <- function (object, respLev, interval = c("none", "delta", "fls", "tfls"
   gq <- gauss.quad.prob(n=nGQ, dist="normal", sigma=1)  
   
   igwlist <- lapply(1:nvc, function(v){
-    std <- sqrt(diag(vclist[[v]]))
-    cormat <- vccor[[v]]
     nrn <- nrnl[[v]]
-    nv <- length(std)
+    nv <- length(diag(vclist[[v]]))
     
     eg <- eval(parse(text=paste("expand.grid(", paste(rep("gq$nodes", nv), collapse=","), ")", sep="")))
     weg <- eval(parse(text=paste("expand.grid(", paste(rep("gq$weights", nv), collapse=","), ")", sep="")))
     w <- apply(weg, 1, function(x) prod(x))
     
-    ee <- eigen(cormat)
-    A <- ee$vectors %*% diag(sqrt(ee$values))
-    z <- data.frame(t(std*(A %*% t(as.matrix(eg)))))
+    cfvv <- chol(vclist[[v]])
+    z <- as.matrix(eg) %*% cfvv
     
     intgrid <- matrix(0, ncol=length(pnames), nrow=nrow(z))
     wn <- sapply(1:length(nrn), function(i) which(pnames == nrn[i]))
