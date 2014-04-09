@@ -1,0 +1,5 @@
+%nVignetteIndexEntry{User manual}
+\documentclass{article}
+\begin{document}
+...
+\end{document}
