@@ -21,10 +21,10 @@ SImarg <- function(object, percVec, percMat = NULL, compMatch = NULL, reverse = 
     parm <- object$fct$fixed
     parm[is.na(parm)] <- parmChosen
     p <- 100-eval(parse(text="drc:::EDhelper(parmChosen, respLev, reference = reference, type = type)"))
-    tval <- parm[2] + (parm[3]-parm[2])*(p/100)
-    mint <- function(d) sum(na.omit(w*apply(intgrid, 1, function(x) object$fct$fct(d, rbind(parmChosen + x)))))-tval 
+    cip <- if ("c" %in% colnames(intgrid)) intgrid[,"c"] else rep(0, nrow(intgrid))
+    dip <- if ("d" %in% colnames(intgrid)) intgrid[,"d"] else rep(0, nrow(intgrid))    
+    mint <- function(d) sum(na.omit(w * sapply(1:nrow(intgrid), function(x) object$fct$fct(d, rbind(parmChosen + intgrid[x,])) - ((parm[2] + cip[x]) + ((parm[3] + dip[x]) - (parm[2] + cip[x])) * (p/100)) ) ))
     myenv <- new.env()
-    assign("tval", tval, envir = myenv)
     assign("parmChosen", parmChosen, envir = myenv) 
     assign("rfinterval", rfinterval, envir = myenv) 
     ede <- suppressWarnings(numericDeriv(quote(uniroot(mint, interval=rfinterval)$root), "parmChosen", myenv))
