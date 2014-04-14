@@ -101,8 +101,9 @@ EDmarg <- function (object, respLev, interval = c("none", "delta", "fls", "tfls"
     parm <- object$fct$fixed
     parm[is.na(parm)] <- parmChosen
     p <- 100-eval(parse(text="drc:::EDhelper(parmChosen, respLev, reference = reference, type = type)"))
-    tval <- parm[2] + (parm[3]-parm[2])*(p/100)
-    mint <- function(d, parmChosen, intgrid, intweights, tval, object) sapply(d, function(dx) sum(na.omit(intweights*apply(intgrid, 1, function(x) object$fct$fct(dx, rbind(parmChosen + x)) )))-tval)
+    cip <- if ("c" %in% colnames(intgrid)) intgrid[,"c"] else rep(0, nrow(intgrid))
+    dip <- if ("d" %in% colnames(intgrid)) intgrid[,"d"] else rep(0, nrow(intgrid))
+    mint <- function(d, parmChosen, intgrid, intweights, tval, object, cip, dip) sapply(d, function(dx) sum(na.omit(intweights * sapply(1:nrow(intgrid), function(x) object$fct$fct(dx, rbind(parmChosen + intgrid[x,])) - ((parm[2] + cip[x]) + ((parm[3] + dip[x]) - (parm[2] + cip[x])) * (p/100)) ) )))    
     myenv <- new.env()
     assign("object", object, envir = myenv)
     assign("tval", tval, envir = myenv)
@@ -110,7 +111,9 @@ EDmarg <- function (object, respLev, interval = c("none", "delta", "fls", "tfls"
     assign("rfinterval", rfinterval, envir = myenv) 
     assign("intgrid", intgrid, envir = myenv) 
     assign("intweights", intweights, envir = myenv)   
-    ede <- suppressWarnings(numericDeriv(quote(uniroot(mint, interval=rfinterval, parmChosen=parmChosen, intgrid=intgrid, intweights=intweights, tval=tval, object=object)$root), "parmChosen", myenv))
+    assign("cip", cip, envir = myenv)
+    assign("dip", dip, envir = myenv)
+    ede <- suppressWarnings(numericDeriv(quote(uniroot(mint, interval = rfinterval, parmChosen = parmChosen, intgrid = intgrid, intweights = intweights, tval = tval, object = object, cip=cip, dip=dip)$root), "parmChosen", myenv))
     out <- list()
     out[[1]] <- ede
     out[[2]] <- as.vector(attr(ede, "gradient"))

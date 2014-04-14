@@ -1,4 +1,4 @@
-%nVignetteIndexEntry{User manual}
+%VignetteIndexEntry{User manual}
 \documentclass{article}
 \begin{document}
 ...
