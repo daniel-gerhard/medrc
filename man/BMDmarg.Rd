@@ -4,7 +4,7 @@
 \description{Estimates the marginal benchmark dose, conditional on the estimated variance components.}
 \usage{
 BMDmarg(object, respLev, interval = c("none", "delta", "fls", "tfls"), 
-    level = 0.95, bmd = c("additional", "extra"), 
+    clevel=NULL, level = 0.95, bmd = c("additional", "extra"), 
     background = 0.05, nGQ=5, rfinterval=c(0, 1000), display=TRUE)
 }
 \arguments{
@@ -12,6 +12,7 @@ BMDmarg(object, respLev, interval = c("none", "delta", "fls", "tfls"),
   \item{respLev}{a numeric vector containing the benchmark response levels}
   \item{interval}{character string specifying the type of confidence
     intervals to be supplied.}
+  \item{clevel}{character string specifying the curve id in case on estimates for a specific curve or compound is requested. By default estimates are shown for all curves.}
   \item{level}{confidence level, default at 0.95}
   \item{bmd}{benchmark dose estimation (smallest dose resulting in a
     probability of an abnormal response)}
