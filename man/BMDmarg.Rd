@@ -4,8 +4,8 @@
 \description{Estimates the marginal benchmark dose, conditional on the estimated variance components.}
 \usage{
 BMDmarg(object, respLev, interval = c("none", "delta", "fls", "tfls"), 
-    clevel=NULL, level = 0.95, bmd = c("additional", "extra"), 
-    background = 0.05, nGQ=5, rfinterval=c(0, 1000), display=TRUE)
+    clevel=NULL, level = ifelse(!(interval == "none"), 0.95, NULL), bmd = c("additional", "extra"), 
+    background = 0.05, nGQ=5, rfinterval=c(0, 1000), display=TRUE, ...)
 }
 \arguments{
   \item{object}{an medrc object}
@@ -20,6 +20,7 @@ BMDmarg(object, respLev, interval = c("none", "delta", "fls", "tfls"),
   \item{nGQ}{integer. Specifies the number nof nodes for Gauss-Hermite quadrature.}
   \item{rfinterval}{numeric vector. Interval for root finding (uniroot) to search for ED values. Default is [0, 1000].}
   \item{display}{logical. If TRUE results are displayed; otherwise they are not}
+  \item{...}{additional arguments}
 }
 
 \author{Christian Ritz, Daniel Gerhard}
