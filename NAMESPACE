@@ -1,7 +1,8 @@
-import(stats, nlme, drc, ggplot2)
+import(nlme, drc, ggplot2)
 importFrom("statmod", gauss.quad.prob)
 importFrom("plyr", ldply)
 importFrom("gtools", combinations)
+importFrom("stats", AIC, BIC)
 export(medrm, glsdrm, mmaED, mmaBMD, mmaSI, LL4.loged, LN4.loged, W14.loged, W24.loged, EDcond, EDmarg, SImarg, BMD, BMDmarg, mmplot)
 
 S3method(df.residual, medrc)

@@ -30,7 +30,7 @@ EDcond <- function (object, respLev, rlevel=Q, interval = c("none", "delta", "fl
   indexMat <- indexMat[, curveOrder, drop = FALSE]
   parmMat <- parmMat[, curveOrder, drop = FALSE]
   strParm <- strParm0
-  vcMat <- kronecker(diag(ncol(parmMat)), vcov(object, od = od, pool = pool))
+  vcMat <- kronecker(diag(ncol(parmMat)), vcov(object))
   ncolIM <- ncol(indexMat)
   indexVec <- 1:ncolIM
   lenPV <- length(respLev)
