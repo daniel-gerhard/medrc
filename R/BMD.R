@@ -7,6 +7,10 @@ BMD <- function(object, respLev, interval = c("none", "delta", "fls", "tfls"), l
   adjrespLev <- sapply(1:lenRL, function(i){ 
     cobj <- object$parmMat
     prnames <- rownames(cobj)
+    if (class(object)[1] == "drc"){
+      prnames <- unique(object$parNames[[2]])
+      rownames(cobj) <- prnames
+    }
     cvals <- cobj[prnames == "c", ]
     if (length(cvals) == 0) {cvals <- 0}  # setting c if missing (not estimated)
     dvals <- cobj[prnames == "d", ]
@@ -23,6 +27,9 @@ BMD <- function(object, respLev, interval = c("none", "delta", "fls", "tfls"), l
     }
     if (class(object)[1] == "glsdrc"){
       return(100 * (qnorm(1 - background) - qnorm(1-(background+respLev[i]/100))) * object$fit$sigma / (dvals - cvals))     
+    }
+    if (class(object)[1] == "drc"){
+      return(100 * (qnorm(1 - background) - qnorm(1-(background+respLev[i]/100))) * summary(object)$rseMat[1,1] / (dvals - cvals))     
     }
   }) 
   intLabel <- NULL
