@@ -31,7 +31,8 @@ makehelpfunction <- function(fct){
 findfixedstartvals <- function(form, data, cid, fct, fid, mform){
   if (is.na(cid)){
     mf <- model.frame(form, data)
-    return(fct$ssfct(mf))
+    fullp <- coefficients(drm(form, data=mf[,1:2], fct=fct))
+    return(fullp)
   } else {
     cform <- as.formula(paste(as.character(form)[2], as.character(form)[1], as.character(form)[3], "+", cid))
     mf <- model.frame(cform, data)
@@ -49,7 +50,8 @@ findfixedstartvals <- function(form, data, cid, fct, fid, mform){
 }
 
 
-findrandomstartvals <- function(form, data, fct, random){
+
+findrandomstartvals <- function(form, data, fct, random, curveid){
   if (class(random)[1] == "list"){
     rid <- names(random)
     rpars <- lapply(random, function(x){
@@ -66,43 +68,36 @@ findrandomstartvals <- function(form, data, fct, random){
       rpars[[i]] <- spr[!(spr %in% c(" ", "+"))]
     }
   }
-  rform <- as.formula(paste(as.character(form)[2], as.character(form)[1], as.character(form)[3], "+", paste(rid, collapse="+")))
+  cid <- as.character(curveid)[3]
+  if (is.na(cid)){
+    cid <- "curveid"
+    data$curveid <- as.factor(1)
+  }   
+  rform <- as.formula(paste(as.character(form)[2], as.character(form)[1], as.character(form)[3], "+", cid, "+", paste(rid, collapse="+")))
   mf <- model.frame(rform, data)
-  # 2nd hierarchy compared with fullp instead of first hierarchical level
-  rstart <- lapply(1:length(rid), function(ri){
-    sf1 <- apply(mf[,rid[1:ri],drop=FALSE], 1, function(x) paste(x, collapse="/"))
-    spl <- split(mf, sf1)
-    if (ri == 1){
-      fullpp <- coefficients(drm(form, data=mf[,1:2], fct=fct))
-      fullp <- matrix(rep(fullpp, each=length(spl)), ncol=length(fullpp))
-    } else {
-      sf2 <- apply(mf[,rid[1:(ri-1)],drop=FALSE], 1, function(x) paste(x, collapse="/"))
-      spl2 <- split(mf, sf2)
-      fullpp <- coefficients(drm(form, data=mf[,1:2], fct=fct))
-      fullp <- t(sapply(spl2, function(x){
-        trycoef <- try(coefficients(drm(form, data=x, fct=fct)), silent=TRUE)  
-        if (class(trycoef)[1] == "try-error") return(fullp) else return(trycoef)
-      })) 
-      fullp <- matrix(unlist(lapply(1:length(spl2), function(c2){
-        nrep <- length(unique(apply(spl2[[c2]][,rid[1:ri],drop=FALSE], 1, function(x) paste(x, collapse="/"))))
-        matrix(rep(fullp[c2,], nrep), ncol=nrep)
-      })), ncol=length(fullpp), byrow=TRUE)
-    }
-    
-    pmat <- t(sapply(spl, function(x){
-      trycoef <- try(coefficients(drm(form, data=x, fct=fct)), silent=TRUE)  
-      if (class(trycoef)[1] == "try-error") return(fullpp) else return(trycoef)
-    }))     
-    
-    rmat <- pmat-fullp
-    colnames(rmat) <- fct$names
-    return(rmat)
-  })
-  names(rstart) <- rid
   
-  for (i in 1:length(rid)){
-    rownames(rstart[[i]]) <- unique(apply(mf[,rid[1:i],drop=FALSE], 1, function(x) paste(x, collapse="/")))
-    rstart[[i]] <- rstart[[i]][,rpars[[i]], drop=FALSE]
-  }    
+  rstart <- lapply(1:length(rid), function(i){    
+    sf1 <- apply(mf[,3:(i+2), drop=FALSE], 1, function(xx) paste(xx, collapse="/"))
+    sf2 <- apply(mf[,4:(i+3), drop=FALSE], 1, function(xx) paste(xx, collapse="/"))
+    spl <- split(mf, sf2)
+    rmat <- lapply(spl, function(x){ 
+      aid <- unique(apply(x[,3:(i+2), drop=FALSE], 1, function(xn) paste(xn, collapse="/")))
+      submf <- mf[sf1 %in% aid,,drop=FALSE]
+      mff <- droplevels(mf[sf1 %in% aid,cid])
+      spl3 <- split(submf, mff)
+      pfc <- sapply(spl3, function(mfx) coefficients(drm(form, data=mfx, fct=fct)))
+      spl4 <- split(x, droplevels(x[,cid]))
+      co <- sapply(spl4, function(mmmm) coefficients(drm(form, data=mmmm, fct=fct)))
+      return(apply(co-pfc, 1, function(p) p[which(min(abs(p)) == abs(p))]))
+    })
+    rmat <- t(simplify2array(rmat))
+    colnames(rmat) <- fct$names
+    rownames(rmat) <- names(spl)    
+    rmat <- rmat[,rpars[[i]], drop=FALSE]
+    return(rmat)
+  })  
+  names(rstart) <- rid
   return(rstart)  
 }
+
+
