@@ -1,7 +1,7 @@
 Package: medrc
 Type: Package
 Title: Mixed effect dose-response curves
-Version: 0.0-65
+Version: 0.0-7
 Date: 2014-09-17
 Author: Daniel Gerhard, Christian Ritz
 Maintainer: Daniel Gerhard <gerhard@biostat.uni-hannover.de>

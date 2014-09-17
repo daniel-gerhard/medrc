@@ -20,10 +20,16 @@ SImarg <- function(object, percVec, percMat = NULL, compMatch = NULL, reverse = 
   edfct <- function(parmChosen, respLev, reference, type, intgrid, intweights, rfinterval){
     parm <- object$fct$fixed
     parm[is.na(parm)] <- parmChosen
-    p <- 100-eval(parse(text="drc:::EDhelper(parmChosen, respLev, reference = reference, type = type)"))
+    parm2 <- object$fct$fixed
+    
+    p <- 100-eval(parse(text="drc:::EDhelper(parm, respLev, reference = reference, type = type)"))
     cip <- if ("c" %in% colnames(intgrid)) intgrid[,"c"] else rep(0, nrow(intgrid))
     dip <- if ("d" %in% colnames(intgrid)) intgrid[,"d"] else rep(0, nrow(intgrid))    
-    mint <- function(d) sum(na.omit(w * sapply(1:nrow(intgrid), function(x) object$fct$fct(d, rbind(parmChosen + intgrid[x,])) - ((parm[2] + cip[x]) + ((parm[3] + dip[x]) - (parm[2] + cip[x])) * (p/100)) ) ))
+    mint <- function(d) sum(na.omit(w * sapply(1:nrow(intgrid), function(x){      
+      pc <- if (is.na(parm2[2])) parmChosen["c"] else parm[2]
+      pd <- if (is.na(parm2[3])) parmChosen["d"] else parm[3]
+      object$fct$fct(d, rbind(parmChosen + intgrid[x,])) - ((pc + cip[x]) + ((pd + dip[x]) - (pc + cip[x])) * (p/100))      
+    }) ))
     myenv <- new.env()
     assign("parmChosen", parmChosen, envir = myenv) 
     assign("rfinterval", rfinterval, envir = myenv) 
