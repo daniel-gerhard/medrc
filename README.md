@@ -9,6 +9,6 @@ By numerical integration of the random effect distribution, conditional on the e
 The package can easily be installed, using the devtools package:
 ```
 library(devtools)
-install_github("daniel-gerhard/medrc", build_vignettes=FALSE)
+install_github("daniel-gerhard/medrc")
 ```
 
