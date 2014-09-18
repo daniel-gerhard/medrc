@@ -35,7 +35,7 @@ medrm(form, curveid=NULL, data, fct, random, correlation = NULL, weights = NULL,
 \details{
 An application of medrm is shown on the help pages of data \code{\link{broccoli}}. EDx and selectivity indices can be calculated with functions \code{\link[drc]{ED}} and \code{\link[drc]{SI}}. Model-averaged ED can be computed by function \code{\link{mmaED}}.
 
-Marginal EDx and corresponding function are implemented in functions \code{\link{EDmarg}} and \code{\link{SImarg}}, using numerical integration conditional on the etimated variance components.
+Marginal EDx and corresponding function are implemented in functions \code{\link{EDmarg}}, using numerical integration conditional on the etimated variance components.
 }
 
 \examples{
@@ -81,10 +81,6 @@ vcov(mm)
 # based on the fixed effect estimates
 # conditional on random effects of 0
 ED(mm, c(25, 50, 75), interval="tfls")
-
-## effective dose estimation ED50
-# conditional on eBLUPs
-EDcond(mm, 50, interval="tfls")
 
 # predictions for Run 2
 ndata <- data.frame(conc=exp(seq(log(0.1),log(13), length=10)), Run="2")

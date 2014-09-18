@@ -326,13 +326,15 @@ ggplot(spinach2, aes(x=DOSE, y=SLOPE, group=HERBICIDE, shape=HERBICIDE, colour=C
 #### Inference for the relative potency
 
 The two fixed effect curves are compared by the ratio of effective dose estimates. As in this case also the marginal estimates are of interest, the marginalization approach can be similarly applied to the ratio of two parameters by extending the use of the delta method to calculate corresponding standard errors.
-Some tuning of the *SImarg()* function is needed, specifying a range of possible SI estimates by rfinterval.
 
 
 ```{r spinachSI}
-SImarg(spm, c(10, 25, 50, 75, 90), percMat=matrix(1:5, 5, 2), 
-       interval="delta", rfinterval=c(0, 100))
-SI(spmg, c(10, 25, 50, 75, 90), percMat=matrix(1:5, 5, 2), interval="delta")
+edm <- EDmarg(spm, respLev=c(10,25,50,75,90))[[2]]
+library(mratios)
+Cnum <- cbind(diag(5),matrix(0,5,5))
+Cden <- cbind(matrix(0,5,5),diag(5))
+rownames(Cnum) <- rownames(Cden) <- paste("bentazon/diuron ED:", c(10,25,50,75,90))
+gsci.ratio(edm$coef, edm$vcov, Cnum, Cden, degfree=0)
 ```
 
 
@@ -351,25 +353,12 @@ ctb$dayplate <- as.factor(with(ctb, paste(day, plate, sep="/")))
 
 For the dose-response relationship a five-parameter log-logistic model is assumed, where the lower asymptote is fixed at zero under the premise of no cell viability at highly toxic dose levels. To fix the parameter of the lower asymptote, a fixed argument is in the *LL.5()* function call. The day effects and the variability of plates are modeled as hierarchical random effects, additively on the four parameters: steepness, upper asymptote, inflection point, and curve asymmetry. Additional to a large between day variability, an increase in residual variance can be observed with higher fluorescence measurements; this fact is represented in the model by including an exponential variance function, modeling the change in scale with increasing concentration levels.
 
-For convergence of the parameter estimation algorithm, user-defined starting values have to be provided for the fixed effects and also for a part of the random effects. These startingvalues are obtained by fitting separate nonlinear least-squares models for each random effect level.
 
 ```{r ctbmodel, warning=FALSE}
-# fixed effect starting values
-fix <- coefficients(drm(fluorescence ~ conc, fct=LL.5(fixed=c(NA, 0, NA, NA, NA)), data=ctb))
-# random effect starting values for days
-rday <- drm(fluorescence ~ conc, curveid=day, fct=LL.5(fixed=c(NA, 0, NA, NA, NA)), data=ctb)
-cmatday <- matrix(coefficients(rday), ncol=4)
-mday <- apply(cmatday, 2, mean)
-names(mday) <- c("b", "d", "e", "f")
-rmatday <- t(apply(cmatday, 1, function(x) x-mday))
-rownames(rmatday) <- levels(ctb$day)
-colnames(rmatday) <- c("b", "d", "e", "f")
-
 ## medrm fit
 mv <- medrm(fluorescence  ~ conc, fct=LL.5(fixed=c(NA, 0, NA, NA, NA)), 
             data=ctb, random=b+d+e+f~1|day/plate, 
             weights=varExp(form = ~conc|plate), 
-            start=list(fixed=fix, random=list(day=rmatday)), 
             control=nlmeControl(maxIter=200))
 
 summary(mv)
@@ -578,11 +567,10 @@ mmaED(mod1, mod2, mod3, mod4, mod5, mod6, respLev=c(25, 50, 75), interval="kang"
 
 #### Marginal effective dose estimation
 
-We might want to marginalize the ED of the broccoli model conditional on the estimated variance components by numerical integration methods. The medrc package provides functions EDmarg and SImarg, but assuming only simple random effect structures.
+We might want to marginalize the ED of the broccoli model conditional on the estimated variance components by numerical integration methods. The medrc package provides functions EDmarg, but assuming only simple random effect structures.
 
 ```{r EDSImarg}
 EDmarg(m5pl, respLev=c(25, 50, 75), interval="delta", nGQ=3)
-SImarg(m5pl, percVec=c(25, 25), interval="delta", nGQ=3)
 ```
 
 In this case there are only small changes compared to the fixed effects estimates; a difference can be observed, when the variance component for the steepness, the location of the inflection point increases, or a variance component for the asymmetry parameter is introduced into the model.

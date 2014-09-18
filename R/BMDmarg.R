@@ -108,7 +108,7 @@ BMDmarg <- function (object, respLev, interval = c("none", "delta", "fls", "tfls
         sum(na.omit(intweights * sapply(1:nrow(intgrid), function(x){           
           pc <- if (is.na(parm2[2])) parmChosen["c"] else parm[2]
           pd <- if (is.na(parm2[3])) parmChosen["d"] else parm[3]
-          p <- (adj1 / abs((pd + dip[x]) - (pc + cip[x])))
+          p <- 100 - (adj1 / abs((pd + dip[x]) - (pc + cip[x])))
           tval <- (pc + cip[x]) + ((pd + dip[x]) - (pc + cip[x])) * (p/100)
           object$fct$fct(dx, rbind(parmChosen + intgrid[x,])) - tval
         }) ))
