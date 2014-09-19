@@ -99,8 +99,7 @@ BMDmarg <- function (object, respLev, interval = c("none", "delta", "fls", "tfls
     varcorr <- VarCorr(object)
     vcr <- as.numeric(varcorr[attr(varcorr, "dimnames")[[1]] %in% "Residual", 2])
     adj1 <- 100 * (qnorm(1 - background) - qnorm(1-(background+respLev/100))) * vcr 
-    
-    
+        
     cip <- if ("c" %in% colnames(intgrid)) intgrid[,"c"] else rep(0, nrow(intgrid))
     dip <- if ("d" %in% colnames(intgrid)) intgrid[,"d"] else rep(0, nrow(intgrid))
     mint <- function(d, parmChosen, intgrid, intweights, object, cip, dip, adj1){
@@ -108,7 +107,8 @@ BMDmarg <- function (object, respLev, interval = c("none", "delta", "fls", "tfls
         sum(na.omit(intweights * sapply(1:nrow(intgrid), function(x){           
           pc <- if (is.na(parm2[2])) parmChosen["c"] else parm[2]
           pd <- if (is.na(parm2[3])) parmChosen["d"] else parm[3]
-          p <- 100 - (adj1 / abs((pd + dip[x]) - (pc + cip[x])))
+          p <- (adj1 / abs((pd + dip[x]) - (pc + cip[x])))
+          if (parm[1] > 0) p <- 100 - p
           tval <- (pc + cip[x]) + ((pd + dip[x]) - (pc + cip[x])) * (p/100)
           object$fct$fct(dx, rbind(parmChosen + intgrid[x,])) - tval
         }) ))
