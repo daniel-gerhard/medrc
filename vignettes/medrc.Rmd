@@ -1,16 +1,15 @@
-<!--
-%\VignetteEngine{knitr::knitr}
-%\VignetteIndexEntry{An introduction to the medrc package}
--->
+---
+title: "An introduction to the medrc package"
+author: "Daniel Gerhard"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\usepackage[utf8]{inputenc}
+---
 
-```{r setup, include=FALSE}
-library(knitr)
-```
 
-
-
-An introduction to the medrc package
-========================================
 
 ```{r packages, echo=FALSE, warning=FALSE, message=FALSE}
 library(medrc)
@@ -201,7 +200,7 @@ print(mg)
 
 The predicted curves can easily be visualized by the plot method for the model objects. But to compare the assay-specific, marginalized, and marginal predictions a user defined plot can be constructed, using the predict method to obtain the desired predicted values for new dose levels.
 
-```{r vincloplot, warning=FALSE, message=FALSE}
+```{r vincloplot, warning=FALSE, message=FALSE, fig.width=6}
 nd <- expand.grid(conc=exp(seq(log(0.01), log(3.2), length=25)))
 nd1 <- nd2 <- nd3 <- nd
 nd1$p <- predict(m, type="marginal", newdata=nd)
@@ -291,7 +290,7 @@ print(spmg)
 Like for the Vinclozolin example a user-defined graphic can be constructed, comparing the fitted GNLS curves with the marginalized predictions. 
 
 
-```{r spinachplot, warning=FALSE, message=FALSE}
+```{r spinachplot, warning=FALSE, message=FALSE, fig.width=6}
 snd <- expand.grid(DOSE=exp(seq(log(0.01), log(150), length=100)), 
                    HERBICIDE=levels(spinach$HERBICIDE))
 snd1 <- snd2 <- snd
@@ -368,7 +367,7 @@ summary(mv)
 
 Also for this model the predicted curves on the plate, day, and population-average level can be displayed.
 
-```{r ctbplot, warning=FALSE, message=FALSE}
+```{r ctbplot, warning=FALSE, message=FALSE, fig.width=6}
 cnd <- expand.grid(conc=exp(seq(log(0.001), log(500), length=100)))
 cnd1 <- cnd
 cnd1$p <- predict(mv$fit, level=0, newdata=cnd)
@@ -410,12 +409,44 @@ BMDmarg(mv, respLev=c(5, 10, 25, 50), nGQ=2, interval="tfls", level=0.9)
 
 
 
+### 3T3 mouse fibroblasts and NRU assay
+
+The toxicity of sodium valproate was tested, using the 3T3 mouse fibroblasts and neutral red uptake (NRU) assay. 22 different experiments were performed independently in six laboratories, using eight concentration levels, each with six replicates on a 96-well plate. In addition, twelve measurements were taken for the solvent control. See Clothier et al. (2013) for more information.
+
+```{r mdradata}
+data(mdra)
+```
+
+
+#### 3-parameter log-logistic model
+
+A 3-parameter log-logistic model was fitted with two levels of hierarchical random effects, treating the laboratory effect and the experiment effect on the upper asymptote and on the ED50 parameter as a random effect. In this way, the hierarchical layout of the data is represented, modelling the variability between laboratories and between experiments within a laboratory. No random laboratory or experiment variation is assigned to the slope parameters in order to reduce model complexity and ensure convergence of the parameter estimation algorithm.
+
+
+```{r mdramodel, fig.width=6}
+mdramod <- medrm(Response ~ Concentration, data=mdra, fct=LL.3(), 
+           random=d + e ~ 1|LabID/ExperimentID, 
+           weights=varExp(form=~Concentration)) 
+plot(mdramod, logx=TRUE, ndose=250, ranef=TRUE) + theme_classic()
+```
+
+#### Benchmark dose estimation
+
+The benchmark dose at benchmark risk levels of 1%, 5%, and 10% are calculated together with the corresponding lower confidence limit (BMDL).
+
+```{r mdrabmd}
+bmdra <- BMDmarg(mdramod, respLev=c(1, 5, 10), 
+                 interval="tfls", rfinterval=c(0,10), nGQ=5)
+```
+
+
+
 ### Broccoli example
 
 The effect of drought stress on *Brassica oleracea* is investigated, selecting drought stress resistant varieties out of a population of different DH genotypes. The screening study was carried out on 48 DH lines developed from F1 plants of a cross between the rapid cycling chinese kale (*Brassica oleracea* var. *alboglabra* (L.H. Bailey) Musil) and broccoli (*Brassica oleracea* var. *italica* Plenck). Two stress treatments (not watered and a watered control) are randomly assigned to 4 plants per genotype (2 per treatment) resulting in 192 plants in total. For the genotypes 5, 17, 31, 48, additional 12 plants (6 per treatment) are included into the completely randomized design, which results in a total of 240 plants. For each plant the length of the youngest leaf at the beginning of the experiment is measured daily for a period of 16 days. For the additional 12 plants of the 4 genotypes the leaf water potential was measured as a secondary endpoint (omitted here); due to these destructive measurements some dropouts occur.
 
 
-```{r broccoli}
+```{r broccoli, fig.width=6}
 data(broccoli)
 str(broccoli)
 
@@ -456,7 +487,7 @@ VarCorr(m5pl$fit)
 
 
 The predicted random effects can be directly accessed by the function ranef().
-```{r ranef}
+```{r ranef, fig.width=6}
 re <- ranef(m5pl)[[1]]
 head(re)
 
@@ -470,7 +501,7 @@ pairs(re, panel = panellab)
 
 
 The growth curves based just on the fixed effects of the model can also be plotted. This ggplot object can be extended by some further ggplot2 functions. A plot of curves, conditional on the random effects, is not yet implemented when several fixed effects curves are present.
-```{r plotfixed}
+```{r plotfixed, fig.width=6}
 plot(m5pl) +
   geom_line(data=bro, aes(group=ID), linetype=2, alpha=0.2) +
   theme_bw()  
@@ -578,6 +609,8 @@ In this case there are only small changes compared to the fixed effects estimate
 
 References
 ========================
+
+* Clothier, R., Gómez-Lechón, M. J., Kinsner-Ovaskainen, A., Kopp-Schneider, A., O’Connor, J. E., Prieto, P., and Stanzel, S. (2013). Comparative analysis of eight cytotoxicity assays evaluated within the ACuteTox Project. *Toxicology in vitro*, **27**(4):1347--1356.
 
 * Davidian, M. and Giltinan, D. M. (1995). *Nonlinear Models for Repeated Measurement Data*. Chapman & Hall/CRC Monographs on Statistics & Applied Probability, London.
 
