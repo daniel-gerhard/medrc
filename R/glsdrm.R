@@ -1,7 +1,5 @@
 glsdrm <-
 function(form, curveid=NULL, data, fct, correlation=NULL, weights=NULL, control=NULL, start=NULL){
-  require(nlme)
-  require(drc)
   callDetail <- match.call()
   # rewrite drc fct into nls selfstart function
   # drcfunction() is defined in global environment...

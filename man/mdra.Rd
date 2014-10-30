@@ -3,10 +3,7 @@
 \docType{data}
 \title{3T3 mouse fibroblasts and NRU assay}
 \description{
-The toxicity of sodium valproate was tested, using the 3T3 mouse fibroblasts and neutral red uptake (NRU)
-assay. 22 different experiments were performed independently in six laboratories,
-using eight concentration levels, each with six replicates on a 96-well plate. In addition, twelve measure-
-ments were taken for the solvent control.
+The toxicity of sodium valproate was tested, using the 3T3 mouse fibroblasts and neutral red uptake (NRU) assay. 22 different experiments were performed independently in six laboratories, using eight concentration levels, each with six replicates on a 96-well plate. In addition, twelve measurements were taken for the solvent control.
 }
 \usage{data("mdra")}
 \format{
@@ -22,9 +19,7 @@ ments were taken for the solvent control.
 http://biostatistics.dkfz.de/download/mdra/MDRA_ExampleData.csv
 }
 \references{
-Clothier, R., Gómez-Lechón, M. J., Kinsner-Ovaskainen, A., Kopp-Schneider, A., O’Connor, J. E., Prieto, P., and
-Stanzel, S. (2013). Comparative analysis of eight cytotoxicity assays evaluated within the ACuteTox Project.
-Toxicology in vitro, 27(4):1347-1356.
+Clothier, R., Gomez-Lechon, M. J., Kinsner-Ovaskainen, A., Kopp-Schneider, A., O'Connor, J. E., Prieto, P., and Stanzel, S. (2013). Comparative analysis of eight cytotoxicity assays evaluated within the ACuteTox Project. Toxicology in vitro, 27(4):1347--1356.
 }
 \examples{
 data(mdra)

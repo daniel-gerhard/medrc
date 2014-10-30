@@ -610,7 +610,7 @@ In this case there are only small changes compared to the fixed effects estimate
 References
 ========================
 
-* Clothier, R., Gómez-Lechón, M. J., Kinsner-Ovaskainen, A., Kopp-Schneider, A., O’Connor, J. E., Prieto, P., and Stanzel, S. (2013). Comparative analysis of eight cytotoxicity assays evaluated within the ACuteTox Project. *Toxicology in vitro*, **27**(4):1347--1356.
+* Clothier, R., Gomez-Lechon, M. J., Kinsner-Ovaskainen, A., Kopp-Schneider, A., O'Connor, J. E., Prieto, P., and Stanzel, S. (2013). Comparative analysis of eight cytotoxicity assays evaluated within the ACuteTox Project. *Toxicology in vitro*, **27**(4):1347--1356.
 
 * Davidian, M. and Giltinan, D. M. (1995). *Nonlinear Models for Repeated Measurement Data*. Chapman & Hall/CRC Monographs on Statistics & Applied Probability, London.
 
