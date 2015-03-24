@@ -23,8 +23,7 @@ function(form, curveid=NULL, data, fct, random, correlation=NULL, weights=NULL, 
   if (is.null(curveid)){
     mfixed <- deparse(as.formula(paste(paste(fct$names, collapse=" + "), "~ 1")))
   } else {
-    stsp <- strsplit(as.character(curveid)[2], "+")[[1]]
-    cin <- stsp[!stsp %in% c(" ", "+")]
+    cin <- all.vars(curveid[[2]])
     pnl <- sapply(fct$names, function(x) if (x %in% cin) paste(x, "~", as.character(curveid)[3], "-1") else paste(x, "~ 1"))
     mfixed <- paste("list(", paste(pnl, collapse=", "), ")", sep="")
   }
