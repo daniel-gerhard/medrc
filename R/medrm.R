@@ -85,8 +85,7 @@ function(form, curveid=NULL, data, fct, random, correlation=NULL, weights=NULL, 
       out$indexMat <- matrix(seq(1, flev*length(pnames), by=1), ncol=flev, byrow=TRUE)         
     }} else {
     pnames <- fct$names
-    stsp <- strsplit(as.character(curveid)[2], "+")[[1]]
-    cin <- stsp[!stsp %in% c(" ", "+")]
+    cin <- all.vars(curveid[[2]])
     cp <- pnames %in% cin
     lev <- levels(data[,as.character(curveid)[3]])
     flev <- length(levels(data[,as.character(curveid)[3]]))        
