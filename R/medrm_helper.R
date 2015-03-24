@@ -7,9 +7,11 @@ makehelpfunction <- function(fct){
     .value <- fct$fct(dose, eval(parse(text=paste('cbind(', paste(fct$names, collapse=', '),')', sep = ''))))
     .actualArgs <- as.list(match.call()[fct$names])
     if (all(unlist(lapply(.actualArgs, is.name)))) {
-      .grad <- fct$deriv1(dose, eval(parse(text=paste('cbind(', paste(fct$names, collapse=', '),')', sep = ''))))
-      dimnames(.grad) <- list(NULL, .actualArgs)
-      attr(.value, 'gradient') <- .grad
+      if (!is.null(fct$deriv1)){
+        .grad <- fct$deriv1(dose, eval(parse(text=paste('cbind(', paste(fct$names, collapse=', '),')', sep = ''))))
+        dimnames(.grad) <- list(NULL, .actualArgs)
+        attr(.value, 'gradient') <- .grad
+      }
     }
     .value
   }"))
