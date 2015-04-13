@@ -583,9 +583,9 @@ The growth curve of the broccoli leaf lengths can be summarized by the effective
 ED(m5pl, respLev=c(25, 50, 75), interval="delta")
 ```
 
-Comparisons of these ED parameters can be made with the drc function SI.
-```{r SIdrc}
-SI(m5pl, percVec=c(25, 25), interval="delta")
+Comparisons of these ED parameters can be made with the drc function EDcomp.
+```{r EDcompdrc}
+EDcomp(m5pl, percVec=c(25, 25), interval="delta")
 ```
 
 
