@@ -191,9 +191,9 @@ print(m)
 Instead of assay-specific parameters in a nonlinear mixed model, population-averaged estimates can be obtained by a generalized nonlinear least-squares fit, assuming a compound-symmetry structure for the residuals to model the between assay variability.
 ```{r vinclognls}
 mg <- glsdrm(effect ~ conc, data=vinclozolin,
-             fct=LL.3(), start=c(0.5, 2000, 0.05), 
+             fct=LL.3(), start=c(0.5, 2000, 0.1), 
              correlation=corCompSymm(form=~1|exper), 
-             control=gnlsControl(tolerance=0.01))
+             control=gnlsControl(tolerance=0.01, nlsTol=0.1))
 print(mg)
 ```
 
@@ -426,7 +426,8 @@ A 3-parameter log-logistic model was fitted with two levels of hierarchical rand
 ```{r mdramodel, fig.width=6}
 mdramod <- medrm(Response ~ Concentration, data=mdra, fct=LL.3(), 
            random=d + e ~ 1|LabID/ExperimentID, 
-           weights=varExp(form=~Concentration)) 
+           weights=varExp(form=~Concentration),
+           control=nlmeControl(tolerance=0.1, pnlsTol=1)) 
 plot(mdramod, logx=TRUE, ndose=250, ranef=TRUE) + theme_classic()
 ```
 
