@@ -4,7 +4,7 @@ importFrom("plyr", ldply)
 importFrom("gtools", combinations)
 importFrom("stats", AIC, BIC)
 importFrom("multcomp", parm)
-export(medrm, glsdrm, mmaED, mmaBMD, LL4.loged, LN4.loged, W14.loged, W24.loged, EDmarg, BMD, BMDmarg, mmplot)
+export(medrm, glsdrm, mmaED, mmaBMD, LL4.loged, LN4.loged, W14.loged, W24.loged, EDmarg, BMD, BMDmarg, BMDadjresp, mmplot)
 
 S3method(print, medrc)
 S3method(df.residual, medrc)
