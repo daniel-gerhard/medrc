@@ -27,7 +27,8 @@ data(mdra)
 # fit a 3-parameter log-logistic mixed model
 m <- medrm(Response ~ Concentration, data=mdra, fct=LL.3(), 
            random=d + e ~ 1|LabID/ExperimentID, 
-           weights=varExp(form=~Concentration)) 
+           weights=varExp(form=~Concentration),
+           start=c(2.13, 0.95, 0.02)) 
            
 plot(m, logx=TRUE, ndose=250, ranef=TRUE) + 
      theme_classic()
