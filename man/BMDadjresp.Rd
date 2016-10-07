@@ -1,9 +1,9 @@
 \name{BMDadjresp}
 \alias{BMDadjresp}
-\title{BMD estimation for medrc or glsdrc models}
+\title{Adjusted ED response levels for BMD estimation based on medrc or glsdrc models}
 \description{Calculates adjusted response levels for estimation of the BMD}
 \usage{
-BMD(object, respLev, bmd = c("additional", "extra"), background = 0.05)
+BMDadjresp(object, respLev, bmd = c("additional", "extra"), background = 0.05)
 }
 \arguments{
   \item{object}{an medrc object}
