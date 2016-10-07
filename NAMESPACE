@@ -4,6 +4,10 @@ importFrom("plyr", ldply)
 importFrom("gtools", combinations)
 importFrom("stats", AIC, BIC)
 importFrom("multcomp", parm)
+importFrom("stats", "as.formula", "coef", "coefficients", "logLik",
+             "model.frame", "na.omit", "nobs", "numericDeriv", "predict",
+             "qnorm", "resid", "sortedXyData", "vcov")
+  importFrom("utils", "stack")
 export(medrm, glsdrm, mmaED, mmaBMD, LL4.loged, LN4.loged, W14.loged, W24.loged, EDmarg, BMD, BMDmarg, BMDadjresp, mmplot)
 
 S3method(print, medrc)
