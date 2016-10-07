@@ -423,7 +423,7 @@ data(mdra)
 A 3-parameter log-logistic model was fitted with two levels of hierarchical random effects, treating the laboratory effect and the experiment effect on the upper asymptote and on the ED50 parameter as a random effect. In this way, the hierarchical layout of the data is represented, modelling the variability between laboratories and between experiments within a laboratory. No random laboratory or experiment variation is assigned to the slope parameters in order to reduce model complexity and ensure convergence of the parameter estimation algorithm.
 
 
-```{r mdramodel, fig.width=6}
+```{r mdramodel, fig.width=6, warning=FALSE, message=FALSE}
 mdramod <- medrm(Response ~ Concentration, data=mdra, fct=LL.3(), 
            random=d + e ~ 1|LabID/ExperimentID, 
            weights=varExp(form=~Concentration),
