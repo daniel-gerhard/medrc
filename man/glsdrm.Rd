@@ -67,7 +67,7 @@ AIC(mc, mcd, mcln)
 ED(mc, c(25, 50, 75), interval="tfls")
 
 # pairwise comparison of ED50 between Runs
-SI(mc, c(50, 50))
+EDcomp(mc, c(50, 50))
 
 # compound-symmetry correlation structure within Runs
 mccs <- glsdrm(density ~ conc, fct=LL.5(), data=DNase, 
