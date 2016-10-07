@@ -96,8 +96,8 @@ ranef.medrc <- function(object, ...){
   ranef(object$fit, ...)
 }
 
-VarCorr.medrc <- function(x, sigma = 1, rdig = 3){
-  VarCorr(x$fit, sigma=sigma, rdig=rdig)
+VarCorr.medrc <- function(x, sigma = 1, ...){
+  VarCorr(x$fit, sigma=sigma)
 }
 
 vcov.medrc <- function(object, ...){

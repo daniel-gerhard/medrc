@@ -20,7 +20,7 @@
 \method{vcov}{medrc}(object, ...)
 \method{summary}{medrc}(object, ...)
 \method{ranef}{medrc}(object, ...)
-\method{VarCorr}{medrc}(x, sigma = 1, rdig = 3)
+\method{VarCorr}{medrc}(x, sigma = 1, ...)
 \method{AIC}{medrc}(object, ..., k = 2)
 \method{BIC}{medrc}(object, ...)
 \method{logLik}{medrc}(object, REML = FALSE, ...)
@@ -37,7 +37,6 @@
   \item{k}{numeric, the penalty per parameter to be used; the default k = 2 is the classical AIC.}
   \item{REML}{an optional logical value. If TRUE the restricted log-likelihood is returned, else, if FALSE, the log-likelihood is returned. Defaults to FALSE.}
   \item{sigma}{an optional numeric value used as a multiplier for the standard deviations. Default is 1.}
-  \item{rdig}{an optional integer value specifying the number of digits used to represent correlation estimates. Default is 3.}
   \item{digits}{minimal number of significant digits}
   \item{...}{further arguments}
 }
