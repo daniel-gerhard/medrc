@@ -33,7 +33,7 @@ medrm(form, curveid=NULL, data, fct, random, correlation = NULL, weights = NULL,
 }
 
 \details{
-An application of medrm is shown on the help pages of data \code{\link{broccoli}}. EDx and selectivity indices can be calculated with functions \code{\link[drc]{ED}} and \code{\link[drc]{SI}}. Model-averaged ED can be computed by function \code{\link{mmaED}}.
+An application of medrm is shown on the help pages of data \code{\link{broccoli}}. EDx and selectivity indices can be calculated with functions \code{\link[drc]{ED}} and \code{\link[drc]{EDcomp}}. Model-averaged ED can be computed by function \code{\link{mmaED}}.
 
 Marginal EDx and corresponding function are implemented in functions \code{\link{EDmarg}}, using numerical integration conditional on the etimated variance components.
 }
