@@ -1,6 +1,9 @@
 medrc
 =====
 
+The medrc package moved to https://github.com/DoseResponse/medrc
+
+
 An R package for mixed effect dose-response modeling, combining the packages nlme and drc.
 
 The package provides functions for fitting hierarchical dose-response models, i.e. 5-parameter log-logistic models, and automated inference for derived parameters, like effective doses, relative potency, and benchmark doses.
